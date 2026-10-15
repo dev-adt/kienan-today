@@ -259,35 +259,10 @@ export const Home = () => {
     }
   };
 
-  const handleSendAiQuestion = async (questionText) => {
+  const handleSendAiQuestion = (questionText) => {
     const q = (questionText || chatInput).trim();
-    if (!q || chatLoading) return;
-
-    setChatMessages(prev => [...prev, { sender: 'user', text: q }]);
-    setChatInput('');
-    setChatLoading(true);
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: q })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const replyText = data.reply || data.response || data.message || 'Cảm ơn bạn đã đặt câu hỏi. Đội ngũ kienan.today sẽ phản hồi sớm nhất!';
-        setChatMessages(prev => [...prev, { sender: 'bot', text: replyText }]);
-      } else {
-        setChatMessages(prev => [...prev, { sender: 'bot', text: 'Hệ thống AI đang được bảo trì hoặc cập nhật dữ liệu. Quý vị có thể tra cứu nhanh qua menu Khám phá Kiến An hoặc gọi hotline 0986 354 152.' }]);
-      }
-    } catch (err) {
-      setChatMessages(prev => [...prev, { sender: 'bot', text: 'Không thể kết nối dịch vụ AI. Xin vui lòng thử lại sau.' }]);
-    } finally {
-      setChatLoading(false);
-      setTimeout(() => {
-        if (chatBottomRef.current) chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
+    if (!q) return;
+    navigate(`/ai-chat?q=${encodeURIComponent(q)}`);
   };
 
   const handleQuickRegisterSubmit = async (e) => {
@@ -892,21 +867,13 @@ export const Home = () => {
                         <span>{event.location}</span>
                       </div>
                       
-                      <div className="ka-sub-event-countdown-row">
-                        <HomeEventCountdown 
-                          eventDate={dateVal} 
-                          endDate={event.end_date}
-                          variant="compact" 
-                        />
-                      </div>
-
                       <Link 
                         to={`/events/${event.slug || event.id}`}
                         className="ka-btn-sub-event-register"
                         style={{ textDecoration: 'none' }}
                       >
                         <i className="ti ti-ticket"></i>
-                        <span>Đăng ký tham gia / Nhận vé QR</span>
+                        <span>Đăng ký</span>
                       </Link>
                     </div>
                   </div>

@@ -21,14 +21,14 @@ export const AIChat = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [aiConfig, setAiConfig] = useState({ provider: 'Gemini', model: 'gemini-1.5-flash' });
   const [selectedModelOverride, setSelectedModelOverride] = useState(() => {
-    return localStorage.getItem('doson_chat_model_override') || '';
+    return localStorage.getItem('kienan_chat_model_override') || '';
   });
 
   const autoSentRef = useRef(false);
 
   const handleModelOverrideChange = (val) => {
     setSelectedModelOverride(val);
-    localStorage.setItem('doson_chat_model_override', val);
+    localStorage.setItem('kienan_chat_model_override', val);
   };
 
   const messagesEndRef = useRef(null);
@@ -220,12 +220,12 @@ export const AIChat = () => {
     }
   };
 
-  // Auto-send query parameter `?q=...` from URL (e.g. from homepage AI box or suggestion chips)
+  // Auto-send query parameter `?q=...` or `?prompt=...` from URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const initialQuery = params.get('q');
+    const initialQuery = (params.get('q') || params.get('prompt') || '').trim();
 
-    if (initialQuery && initialQuery.trim() && !autoSentRef.current && configLoaded) {
+    if (initialQuery && !autoSentRef.current && (configLoaded || !token)) {
       autoSentRef.current = true;
       const newSessionId = generateUUID();
       setCurrentSessionId(newSessionId);
@@ -233,10 +233,10 @@ export const AIChat = () => {
 
       // Auto-trigger send after brief state initialization
       setTimeout(() => {
-        handleSend(initialQuery.trim(), newSessionId);
-      }, 50);
+        handleSend(initialQuery, newSessionId);
+      }, 60);
     }
-  }, [location.search, configLoaded]);
+  }, [location.search, configLoaded, token]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
