@@ -270,11 +270,11 @@ export const OrganizerDashboard = () => {
                 justifyContent: 'center',
                 flexShrink: 0
               }}>
-                <img src="/logo_icon.svg" alt="DakLak.today" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = '/logo_icon.png'; }} />
+                <img src="/logo_icon.svg" alt="KienAn.today" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = '/logo_icon.png'; }} />
               </div>
               <div>
-                <div style={{ fontSize: '15px', fontWeight: 800, color: '#2A160D' }}>
-                  DakLak<span style={{ color: '#D5A33F' }}>.today</span>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#102A43' }}>
+                  KienAn<span style={{ color: '#007F82' }}>.today</span>
                 </div>
               </div>
             </Link>

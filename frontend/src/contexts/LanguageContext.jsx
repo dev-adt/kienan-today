@@ -83,7 +83,7 @@ const LANGS = {
     price_platinum: '9.9 Mđ / năm',
     btn_join_now: 'Gia nhập ngay',
     btn_upgrade_now: 'Đăng ký ngay',
-    footer_desc: 'DakLak.today là cầu nối tin cậy giữa các doanh nghiệp hàng đầu. Tìm kiếm đối tác kinh doanh nhanh chóng, chia sẻ cơ hội đầu tư, tự động kết nối doanh nghiệp Việt Nam 24/7.',
+    footer_desc: 'KienAn.today là cổng thông tin, dữ liệu và cộng đồng kết nối văn hóa, cảnh quan, doanh nghiệp và hoạt động số hóa tại Kiến An, TP. Hải Phòng.',
     footer_services: 'Dịch vụ',
     footer_support: 'Hỗ trợ',
     footer_contact: 'Liên hệ',

@@ -757,38 +757,55 @@ db.query(`
       const [existingEvents] = await db.query("SELECT id FROM events WHERE slug = 'su-kien-demo' OR title LIKE '%Sự kiện demo%' LIMIT 1");
       if (!existingEvents.length) {
         // Xóa sự kiện mẫu cũ nếu có
-        await db.query("DELETE FROM events WHERE title LIKE '%Festival Văn hóa%' OR title LIKE '%Cồng chiêng Tây Nguyên%'");
+        await db.query("DELETE FROM events WHERE title LIKE '%Festival Văn hóa%' OR title LIKE '%Cồng chiêng Tây Nguyên%' OR title LIKE '%Sự kiện demo%'");
         
         await db.query(`
           INSERT INTO events (title, slug, short_desc, description, content, event_date, end_date, location, organizer, capacity, is_paid, price, is_published, status, image_url) VALUES
           (
-            'Sự kiện demo',
-            'su-kien-demo',
-            'Sự kiện demo kết nối giao thương và trải nghiệm công nghệ AI dành cho doanh nghiệp thành viên.',
-            'Sự kiện giao lưu, kết nối các doanh nghiệp thành viên Tạp chí Doanh Nghiệp Việt Nam.',
-            '<p><strong>Sự kiện demo</strong> là chương trình kết nối giao thương đặc biệt do <em>Tạp chí Doanh Nghiệp Việt Nam</em> phối hợp cùng <em>Công ty Cổ phần ADT Quốc tế</em> tổ chức.</p><p>Tại sự kiện, các doanh nghiệp sẽ được:</p><ul><li>Gặp gỡ trực tiếp các chuyên gia tài chính và ngân hàng đối tác hỗ trợ các gói vay vốn ưu đãi.</li><li>Trải nghiệm giải pháp Trợ lý AI và nền tảng quản trị thông minh cho SME.</li><li>Nhận mã QR check-in tiện lợi, tra cứu và kết nối trực tiếp với hơn 200 doanh nghiệp hội viên tham gia.</li></ul><p>Kính mời quý đại diện doanh nghiệp hoàn tất đăng ký để nhận mã QR tham gia sự kiện!</p>',
-            '2026-10-30 15:24:00',
-            '2026-10-30 16:10:00',
-            '36 Hùng vương',
-            'Tạp chí Doanh Nghiệp Việt Nam',
-            100,
+            'Hội thảo Ứng dụng AI & Công nghệ số trong Quản trị Doanh nghiệp và Dịch vụ Công',
+            'hoi-thao-ung-dung-ai-cong-nghe-so-kien-an',
+            'Chia sẻ các ứng dụng AI thiết thực cho chính quyền cấp phường, hộ kinh doanh và trường học.',
+            'Chia sẻ các ứng dụng AI thiết thực cho chính quyền cấp phường, hộ kinh doanh và trường học. Trải nghiệm Bộ Đôi Trợ Lý AI Phường/Xã và nền tảng ORION.',
+            '<p>Hội thảo tập trung hướng dẫn cán bộ cơ sở và hộ kinh doanh ứng dụng Trợ lý AI trong công việc hàng ngày, chuyển đổi số quy trình thủ tục và chăm sóc người dân.</p>',
+            '2026-11-20 08:30:00',
+            '2026-11-20 11:30:00',
+            'Hội trường Trung tâm Văn hóa, Phường Kiến An, TP. Hải Phòng',
+            'Công ty Cổ phần ADT Quốc Tế phối hợp cùng Đối tác',
+            150,
             0,
             0,
             1,
             'upcoming',
-            'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80'
+            'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'
           ),
           (
-            'Diễn đàn Doanh nghiệp Việt Nam 2026: Đổi mới sáng tạo & Ứng dụng AI',
-            'dien-dan-doanh-nghiep-vn-2026',
-            'Diễn đàn quy mô toàn quốc tập hợp hơn 500 lãnh đạo doanh nghiệp, chuyên gia kinh tế và công nghệ.',
-            'Ứng dụng Trí tuệ nhân tạo và chuyển đổi số trong tái cấu trúc chuỗi cung ứng doanh nghiệp Việt Nam.',
-            '<p>Diễn đàn tập trung thảo luận về các chủ đề cấp thiết: Tự động hóa quy trình với AI Agent, Tối ưu chi phí vận hành bằng giải pháp ERP Cloud, và Chiến lược tiếp cận các quỹ đầu tư mạo hiểm giai đoạn 2026 - 2030.</p>',
-            '2026-11-15 08:30:00',
-            '2026-11-15 17:30:00',
-            'Trung tâm Hội nghị Quốc tế, Hà Nội',
-            'Tạp chí Doanh Nghiệp Việt Nam & ADT Group',
+            'Ngày hội Trải nghiệm Văn hóa & Ẩm thực cuối tuần bên Hồ Hạnh Phúc',
+            'ngay-hoi-van-hoa-am-thuc-ho-hanh-phuc',
+            'Không gian gặp gỡ cộng đồng với các gian hàng giới thiệu sản phẩm tiêu biểu địa phương.',
+            'Không gian gặp gỡ cộng đồng với các gian hàng giới thiệu sản phẩm tiêu biểu địa phương, biểu diễn nghệ thuật đường phố và hoạt động gắn kết gia đình.',
+            '<p>Ngày hội thường niên thu hút đông đảo người dân và du khách trải nghiệm các món ăn truyền thống, ngắm cảnh Hồ Hạnh Phúc và tham gia các hoạt động cộng đồng bổ ích.</p>',
+            '2026-11-28 17:00:00',
+            '2026-11-28 21:30:00',
+            'Khu vực Vườn hoa ven Hồ Hạnh Phúc, Kiến An, Hải Phòng',
+            'Ban Tổ chức Hoạt động Cộng đồng Kiến An',
             300,
+            0,
+            0,
+            1,
+            'upcoming',
+            'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1200&q=80'
+          ),
+          (
+            'Diễn đàn Kết nối Doanh nghiệp & Xúc tiến Thương mại Kiến An 2026',
+            'dien-dan-ket-noi-doanh-nghiep-kien-an-2026',
+            'Giao lưu trực tiếp giữa các doanh nghiệp sản xuất, du lịch và nhà cung cấp dịch vụ địa phương.',
+            'Tập hợp hơn 200 doanh nghiệp vừa và nhỏ, hợp tác xã và hộ kinh doanh cá thể trên địa bàn Kiến An, mở rộng chuỗi cung ứng và cơ hội liên kết tiêu thụ sản phẩm.',
+            '<p>Diễn đàn nhằm thúc đẩy kinh tế số, xúc tiến thương mại và hỗ trợ doanh nghiệp địa phương tiếp cận các gói hỗ trợ công nghệ và chuyển đổi xanh.</p>',
+            '2026-12-05 08:30:00',
+            '2026-12-05 16:30:00',
+            'Trung tâm Hội nghị UBND Quận Kiến An, TP. Hải Phòng',
+            'Hội Doanh nghiệp & KienAn.today',
+            250,
             0,
             0,
             1,
@@ -796,36 +813,36 @@ db.query(`
             'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80'
           ),
           (
-            'Hội nghị Xúc tiến Giao thương Doanh nghiệp SME & Vay vốn Xanh',
-            'xuc-tien-giao-thuong-sme-von-xanh',
-            'Kết nối ngân hàng thương mại, quỹ tín dụng quốc tế và các doanh nghiệp thực hành ESG.',
-            'Cơ hội tiếp cận các gói tín dụng xanh lãi suất ưu đãi lên tới 500 tỷ đồng.',
-            '<p>Hội nghị có sự tham gia của hơn 20 tổ chức tài chính hàng đầu và các hiệp hội doanh nghiệp ngành nghề, mang lại giải pháp tài chính thiết thực cho quá trình chuyển đổi xanh của doanh nghiệp.</p>',
-            '2026-12-05 09:00:00',
-            '2026-12-05 12:00:00',
-            'Khách sạn Daewoo, Ba Đình, Hà Nội',
-            'Hiệp hội Doanh nghiệp & Tạp chí Doanh Nghiệp VN',
-            200,
+            'Tọa đàm Hướng nghiệp & Phát triển Kỹ năng số cho Thanh niên Kiến An',
+            'toa-dam-huong-nghiep-ky-nang-so-kien-an',
+            'Trải nghiệm ứng dụng trí tuệ nhân tạo và định hướng nghề nghiệp công nghệ tương lai.',
+            'Chương trình phối hợp cùng các chuyên gia Edunow và ADT Group chia sẻ kiến thức sử dụng AI thực tế trong học tập và công việc.',
+            '<p>Tọa đàm trang bị cho thế hệ trẻ Kiến An hành trang kỹ năng số và năng lực làm chủ công nghệ kỷ nguyên AI.</p>',
+            '2026-12-12 14:00:00',
+            '2026-12-12 17:00:00',
+            'Hội trường Nhà Văn hóa Thiếu nhi Kiến An',
+            'Đoàn Thanh niên & ADT Group',
+            180,
             1,
-            200000,
+            150000,
             1,
             'upcoming',
-            'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'
+            'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1200&q=80'
           )
         `);
 
-        // Tạo 2 đăng ký mẫu cho sự kiện demo để hiển thị: "Đăng ký: 2 / 100 | Còn: 98 vé" đúng chuẩn ảnh người dùng cung cấp!
-        const [demoEvt] = await db.query("SELECT id FROM events WHERE slug = 'su-kien-demo' LIMIT 1");
+        // Tạo đăng ký mẫu cho sự kiện đầu tiên
+        const [demoEvt] = await db.query("SELECT id FROM events WHERE slug = 'hoi-thao-ung-dung-ai-cong-nghe-so-kien-an' LIMIT 1");
         if (demoEvt.length) {
           const dId = demoEvt[0].id;
           await db.query(`
             INSERT INTO event_registrations (event_id, ticket_code, full_name, phone, email, company, quantity, total_amount, payment_status, checkin_status)
             VALUES 
-            (?, 'DNVN-DEMO-001', 'Nguyễn Văn Minh', '0912345678', 'minh.nguyen@techcorp.vn', 'Công ty Cổ phần TechCorp', 1, 0, 'free', 'not_checked_in'),
-            (?, 'DNVN-DEMO-002', 'Trần Thị Thu Trang', '0987654321', 'trang.tran@vinabiz.com', 'Tập đoàn VinaBiz', 1, 0, 'free', 'not_checked_in')
+            (?, 'KA-DEMO-001', 'Nguyễn Văn Minh', '0912345678', 'minh.nguyen@kienan.vn', 'Hội Doanh nghiệp Kiến An', 1, 0, 'free', 'not_checked_in'),
+            (?, 'KA-DEMO-002', 'Trần Thị Thu Trang', '0987654321', 'trang.tran@haiphong.gov.vn', 'UBND Phường Kiến An', 1, 0, 'free', 'not_checked_in')
           `, [dId, dId]);
         }
-        console.log('✅ Đã khởi tạo 3 sự kiện chuẩn DakLak và vé mẫu!');
+        console.log('✅ Đã khởi tạo 4 sự kiện chuẩn KienAn.today và vé mẫu!');
       }
     } catch (e) {
       console.warn('Cảnh báo kiểm tra bảng events & event_registrations:', e.message);
@@ -881,76 +898,77 @@ db.query(`
     }
 
     const [catCount] = await db.query('SELECT COUNT(*) as count FROM categories');
-    const [hasOldCategories] = await db.query("SELECT COUNT(*) as count FROM categories WHERE name LIKE '%Đồ Sơn%' OR name LIKE '%Văn hóa – Du lịch%'");
+    const [hasOldCategories] = await db.query("SELECT COUNT(*) as count FROM categories WHERE name LIKE '%Đồ Sơn%' OR name LIKE '%Văn hóa – Du lịch%' OR name LIKE '%Tư vấn Vay vốn%'");
 
     if (catCount[0].count === 0 || hasOldCategories[0].count > 0) {
-      console.log('🌱 Đang khởi tạo/đồng bộ dữ liệu Chuyên mục & Lĩnh vực DakLak.today...');
+      console.log('🌱 Đang khởi tạo/đồng bộ dữ liệu Chuyên mục & Lĩnh vực KienAn.today...');
       if (hasOldCategories[0].count > 0) {
-        await db.query('DELETE FROM categories WHERE name LIKE "%Đồ Sơn%" OR name LIKE "%Văn hóa – Du lịch%"');
+        await db.query('DELETE FROM categories WHERE name LIKE "%Đồ Sơn%" OR name LIKE "%Văn hóa – Du lịch%" OR name LIKE "%Tư vấn Vay vốn%"');
       }
 
       const defaultCategories = [
         {
-          name: 'Sự kiện & Diễn đàn', name_en: 'Events & Forums', order: 1,
+          name: 'Khám phá Kiến An', name_en: 'Discover Kien An', order: 1,
           subs: [
-            { vi: 'Hội thảo & Tọa đàm', en: 'Conferences & Seminars' },
-            { vi: 'Diễn đàn kinh tế', en: 'Economic Forums' },
-            { vi: 'Xúc tiến thương mại', en: 'Trade Promotion' },
-            { vi: 'Giao thương B2B', en: 'B2B Networking' }
+            { vi: 'Điểm đến & Thắng cảnh', en: 'Destinations & Landscapes' },
+            { vi: 'Đồi Thiên Văn & Phù Liễn', en: 'Thien Van Hill & Phu Lien' },
+            { vi: 'Hồ Hạnh Phúc & Cảnh quan', en: 'Hanh Phuc Lake & Landscapes' },
+            { vi: 'Lịch sử & Di sản văn hóa', en: 'History & Cultural Heritage' },
+            { vi: 'Ẩm thực & Trải nghiệm', en: 'Cuisine & Experience' }
           ]
         },
         {
-          name: 'Tư vấn Vay vốn & Tài chính', name_en: 'Loan & Financial Consulting', order: 2,
+          name: 'Doanh nghiệp & Dịch vụ', name_en: 'Enterprises & Services', order: 2,
           subs: [
-            { vi: 'Tín dụng ngân hàng', en: 'Bank Credits' },
-            { vi: 'Quỹ hỗ trợ SME', en: 'SME Support Funds' },
-            { vi: 'Vốn đầu tư khởi nghiệp', en: 'Startup Investment Capital' },
-            { vi: 'Cơ cấu tài chính doanh nghiệp', en: 'Corporate Financial Restructuring' }
+            { vi: 'Danh bạ Doanh nghiệp', en: 'Business Directory' },
+            { vi: 'Hộ kinh doanh cá thể', en: 'Individual Households' },
+            { vi: 'Sản phẩm & Đặc sản', en: 'Products & Specialties' },
+            { vi: 'Dịch vụ đời sống & Tiện ích', en: 'Living Services & Utilities' }
           ]
         },
         {
-          name: 'Truyền thông Thương hiệu', name_en: 'Brand & Communication', order: 3,
+          name: 'Sự kiện & Hoạt động', name_en: 'Events & Activities', order: 3,
           subs: [
-            { vi: 'Báo chí & Truyền thông', en: 'Press & Media' },
-            { vi: 'Nhận diện thương hiệu', en: 'Brand Identity' },
-            { vi: 'Chiến dịch PR', en: 'PR Campaigns' },
-            { vi: 'Quản trị khủng hoảng truyền thông', en: 'Crisis Management' }
+            { vi: 'Sự kiện sắp diễn ra', en: 'Upcoming Events' },
+            { vi: 'Hội thảo Chuyển đổi số & AI', en: 'Digital Transformation & AI' },
+            { vi: 'Hoạt động cộng đồng Hồ Hạnh Phúc', en: 'Hanh Phuc Lake Community' },
+            { vi: 'Văn hóa - Thể thao địa phương', en: 'Local Culture & Sports' }
           ]
         },
         {
-          name: 'Marketing & Bán hàng', name_en: 'Marketing & Sales', order: 4,
+          name: 'Cộng đồng & Sáng kiến', name_en: 'Community & Initiatives', order: 4,
           subs: [
-            { vi: 'Digital Marketing & SEO', en: 'Digital Marketing & SEO' },
-            { vi: 'Thương mại điện tử', en: 'E-Commerce' },
-            { vi: 'Kênh phân phối & Chuỗi cung ứng', en: 'Distribution & Supply Chain' },
-            { vi: 'Tối ưu chuyển đổi', en: 'Conversion Optimization' }
+            { vi: 'Câu chuyện nhân vật', en: 'Character Stories' },
+            { vi: 'Sáng kiến đổi mới', en: 'Innovative Initiatives' },
+            { vi: 'Người Kiến An xa quê', en: 'Kien An People Living Far Away' },
+            { vi: 'Cộng tác viên & Tình nguyện', en: 'Contributors & Volunteers' }
           ]
         },
         {
-          name: 'Ứng dụng AI & Công nghệ', name_en: 'AI & Technology Application', order: 5,
+          name: 'Cơ hội Hợp tác', name_en: 'Partnership Opportunities', order: 5,
           subs: [
-            { vi: 'Trợ lý AI & Multi-Agent', en: 'AI Assistants & Multi-Agent' },
-            { vi: 'Tự động hóa doanh nghiệp', en: 'Business Automation' },
-            { vi: 'ERP & CRM thông minh', en: 'Smart ERP & CRM' },
-            { vi: 'Chuyển đổi số doanh nghiệp', en: 'Digital Transformation' }
-          ]
-        },
-        {
-          name: 'Thực hành ESG & Phát triển bền vững', name_en: 'ESG & Sustainable Development', order: 6,
-          subs: [
-            { vi: 'Chuyển đổi xanh & Năng lượng sạch', en: 'Green Transition & Clean Energy' },
-            { vi: 'Tiêu chuẩn & Báo cáo ESG', en: 'ESG Standards & Reporting' },
-            { vi: 'Giảm phát thải Carbon', en: 'Carbon Footprint Reduction' },
-            { vi: 'Trách nhiệm xã hội CSR', en: 'Corporate Social Responsibility' }
-          ]
-        },
-        {
-          name: 'Hiệp hội & Giao thương', name_en: 'Business Association & Networking', order: 7,
-          subs: [
-            { vi: 'Hiệp hội Doanh nghiệp', en: 'Business Associations' },
-            { vi: 'Danh bạ Hội viên', en: 'Member Directory' },
             { vi: 'Tìm kiếm đối tác', en: 'Partner Search' },
-            { vi: 'Cơ hội đầu tư & Hợp tác', en: 'Partnership Opportunities' }
+            { vi: 'Tuyển dụng & Việc làm', en: 'Recruitment & Jobs' },
+            { vi: 'Xúc tiến thương mại', en: 'Trade Promotion' },
+            { vi: 'Không gian sáng tạo', en: 'Creative Spaces' }
+          ]
+        },
+        {
+          name: 'AI Center & Kỹ năng số', name_en: 'AI Center & Digital Skills', order: 6,
+          subs: [
+            { vi: 'Trợ lý AI Phường/Xã', en: 'Ward/Commune AI Assistant' },
+            { vi: 'Hệ sinh thái ORION', en: 'ORION Ecosystem' },
+            { vi: 'Trợ lý tuyển sinh Edunow', en: 'Edunow Admissions Assistant' },
+            { vi: 'Khóa học & Kỹ năng AI', en: 'AI Courses & Skills' }
+          ]
+        },
+        {
+          name: 'Dữ liệu & Tiện ích', name_en: 'Data & Utilities', order: 7,
+          subs: [
+            { vi: 'Bản đồ địa điểm', en: 'Location Map' },
+            { vi: 'Chỉ dẫn đường & Bãi xe', en: 'Directions & Parking' },
+            { vi: 'Thông tin dịch vụ công', en: 'Public Service Info' },
+            { vi: 'Đường dây nóng khẩn cấp', en: 'Emergency Hotlines' }
           ]
         }
       ];

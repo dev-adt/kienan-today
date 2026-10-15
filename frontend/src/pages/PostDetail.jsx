@@ -272,7 +272,7 @@ export const PostDetail = () => {
       parsedTagsStr = String(post.tags);
     }
   }
-  const metaKeywords = [parsedTagsStr, post.category, post.sub_category, 'DakLak.today', 'Cổng thông tin & Dữ liệu DakLak.today', post.title].filter(Boolean).join(', ');
+  const metaKeywords = [parsedTagsStr, post.category, post.sub_category, 'KienAn.today', 'Cổng thông tin & Dữ liệu KienAn.today', post.title].filter(Boolean).join(', ');
 
   // Generate NewsArticle JSON-LD schema
   const newsSchema = {
@@ -284,14 +284,14 @@ export const PostDetail = () => {
     "dateModified": post.updated_at || post.created_at,
     "author": [{
       "@type": "Organization",
-      "name": post.company_name || "Hội viên DakLak.today"
+      "name": post.company_name || "Hội viên KienAn.today"
     }],
     "publisher": {
       "@type": "Organization",
-      "name": "DakLak.today",
+      "name": "KienAn.today",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://daklak.today/logo_icon.png"
+        "url": "https://kienan.today/logo_icon.png"
       }
     },
     "description": metaDescription

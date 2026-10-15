@@ -180,9 +180,9 @@ export const Members = () => {
   return (
     <div className="public-body">
       <SEOHead 
-        title="Danh bạ Hội viên Doanh nghiệp"
-        description="Tra cứu và kết nối danh bạ các doanh nghiệp, đối tác uy tín hệ sinh thái DakLak.today. Phân loại theo hạng Platinum, Gold, Silver."
-        keywords="danh bạ doanh nghiệp, hội viên DakLak.today, tạp chí doanh nghiệp việt nam, đối tác uy tín"
+        title="Danh bạ Doanh nghiệp & Dịch vụ Kiến An"
+        description="Tra cứu và kết nối danh bạ các doanh nghiệp, hợp tác xã, hộ kinh doanh uy tín hệ sinh thái KienAn.today."
+        keywords="danh bạ doanh nghiệp, hội viên KienAn.today, kiến an hải phòng, đối tác uy tín"
         url="/members"
       />
       <Navbar />

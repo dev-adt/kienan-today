@@ -10,10 +10,10 @@ export const NotFound = () => {
   const { currentLang } = useTranslation();
 
   return (
-    <div className="public-body" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F7F1E8' }}>
+    <div className="public-body" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
       <SEOHead 
-        title={currentLang === 'en' ? '404 - Page Not Found | DakLak.today' : '404 - Không Tìm Thấy Trang | DakLak.today'}
-        description={currentLang === 'en' ? 'The requested page could not be found on DakLak.today.' : 'Liên kết bạn yêu cầu không tồn tại hoặc đã được chuyển sang địa chỉ mới trên DakLak.today.'}
+        title={currentLang === 'en' ? '404 - Page Not Found | KienAn.today' : '404 - Không Tìm Thấy Trang | KienAn.today'}
+        description={currentLang === 'en' ? 'The requested page could not be found on KienAn.today.' : 'Liên kết bạn yêu cầu không tồn tại hoặc đã được chuyển sang địa chỉ mới trên KienAn.today.'}
       />
       <Navbar />
 
@@ -25,7 +25,7 @@ export const NotFound = () => {
           borderRadius: '24px',
           padding: '48px 36px',
           textAlign: 'center',
-          boxShadow: '0 20px 50px rgba(59, 36, 23, 0.12), 0 0 0 1px rgba(122, 62, 29, 0.08)',
+          boxShadow: '0 20px 50px rgba(16, 42, 67, 0.08), 0 0 0 1px rgba(0, 127, 130, 0.1)',
           position: 'relative',
           overflow: 'hidden'
         }}>
@@ -37,7 +37,7 @@ export const NotFound = () => {
             transform: 'translateX(-50%)',
             width: '240px',
             height: '140px',
-            background: 'radial-gradient(circle, rgba(213, 163, 63, 0.25) 0%, transparent 70%)',
+            background: 'radial-gradient(circle, rgba(0, 127, 130, 0.2) 0%, transparent 70%)',
             pointerEvents: 'none'
           }} />
 
@@ -49,11 +49,11 @@ export const NotFound = () => {
             width: '96px',
             height: '96px',
             borderRadius: '50%',
-            backgroundColor: 'rgba(168, 69, 36, 0.1)',
-            color: '#A84524',
+            backgroundColor: 'rgba(0, 127, 130, 0.1)',
+            color: '#007F82',
             fontSize: '44px',
             marginBottom: '20px',
-            boxShadow: '0 8px 24px rgba(168, 69, 36, 0.15)'
+            boxShadow: '0 8px 24px rgba(0, 127, 130, 0.15)'
           }}>
             <i className="ti ti-compass-off" />
           </div>
@@ -62,9 +62,9 @@ export const NotFound = () => {
             display: 'inline-block',
             padding: '5px 14px',
             borderRadius: '20px',
-            backgroundColor: 'rgba(213, 163, 63, 0.15)',
-            border: '1px solid rgba(213, 163, 63, 0.35)',
-            color: '#B3832B',
+            backgroundColor: 'rgba(0, 127, 130, 0.12)',
+            border: '1px solid rgba(0, 127, 130, 0.3)',
+            color: '#007F82',
             fontWeight: 700,
             fontSize: '12px',
             letterSpacing: '1px',
@@ -77,7 +77,7 @@ export const NotFound = () => {
           <h1 style={{
             fontSize: 'clamp(1.75rem, 3.5vw, 2.25rem)',
             fontWeight: 800,
-            color: '#26160E',
+            color: '#102A43',
             lineHeight: 1.3,
             marginBottom: '12px'
           }}>
@@ -86,14 +86,14 @@ export const NotFound = () => {
 
           <p style={{
             fontSize: '14.5px',
-            color: '#6B5B52',
+            color: '#486581',
             lineHeight: 1.65,
             maxWidth: '480px',
             margin: '0 auto 28px'
           }}>
             {currentLang === 'en'
               ? 'The link you followed may be broken, or the page may have been removed or moved to a new destination.'
-              : 'Đường dẫn bạn vừa truy cập không tồn tại, đã bị đổi tên hoặc tạm thời gỡ bỏ khỏi hệ thống DakLak.today.'}
+              : 'Đường dẫn bạn vừa truy cập không tồn tại, đã bị đổi tên hoặc tạm thời gỡ bỏ khỏi hệ thống KienAn.today.'}
           </p>
 
           {/* Quick Action Navigation Buttons */}
@@ -107,8 +107,8 @@ export const NotFound = () => {
             <Link
               to="/"
               style={{
-                backgroundColor: '#A84524',
-                backgroundImage: 'linear-gradient(135deg, #A84524 0%, #7A3E1D 100%)',
+                backgroundColor: '#007F82',
+                backgroundImage: 'linear-gradient(135deg, #00A896 0%, #007F82 100%)',
                 color: '#FFFFFF',
                 padding: '12px 24px',
                 borderRadius: '30px',
@@ -118,7 +118,7 @@ export const NotFound = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 4px 15px rgba(168, 69, 36, 0.35)',
+                boxShadow: '0 4px 15px rgba(0, 127, 130, 0.35)',
                 transition: 'all 0.2s ease'
               }}
             >
@@ -130,8 +130,8 @@ export const NotFound = () => {
               to="/search"
               style={{
                 backgroundColor: '#FFFFFF',
-                color: '#3B2417',
-                border: '1.5px solid #D8C8B8',
+                color: '#102A43',
+                border: '1.5px solid #CBD5E1',
                 padding: '11px 22px',
                 borderRadius: '30px',
                 fontWeight: 600,
@@ -150,9 +150,9 @@ export const NotFound = () => {
             <Link
               to="/ai-chat"
               style={{
-                backgroundColor: 'rgba(213, 163, 63, 0.12)',
-                color: '#8A5D1A',
-                border: '1.5px solid rgba(213, 163, 63, 0.4)',
+                backgroundColor: 'rgba(0, 127, 130, 0.1)',
+                color: '#007F82',
+                border: '1.5px solid rgba(0, 127, 130, 0.35)',
                 padding: '11px 22px',
                 borderRadius: '30px',
                 fontWeight: 700,

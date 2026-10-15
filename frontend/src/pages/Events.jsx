@@ -1741,7 +1741,7 @@ export const Events = () => {
     <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', color: '#0F172A', display: 'flex', flexDirection: 'column' }}>
       <SEOHead
         title={`Lịch Sự kiện & Diễn đàn Doanh nghiệp — ${brandConfig.brandName}`}
-        description="Tổng hợp các sự kiện xúc tiến thương mại, hội thảo kết nối đầu tư, diễn đàn chuyển đổi số và giao thương B2B của Cổng thông tin & Dữ liệu DakLak.today."
+        description="Tổng hợp các sự kiện xúc tiến thương mại, hội thảo chuyển đổi số, sinh hoạt cộng đồng Hồ Hạnh Phúc và diễn đàn doanh nghiệp của Cổng thông tin & Dữ liệu KienAn.today."
       />
       <Navbar />
 

@@ -6,73 +6,92 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import FloatingAIBot from '../components/FloatingAIBot';
 import SEOHead from '../components/SEOHead';
-import SpotlightBanner from '../components/SpotlightBanner';
 import brandConfig from '../brand.config';
 import { getCategoryLabel } from '../constants/categories';
 import { fetchJsonWithTimeout, FALLBACK_POSTS, FALLBACK_EVENTS, FALLBACK_MEMBERS } from '../utils/api';
 import './HomeKienAn.css';
 
-// Sub-component đếm ngược sự kiện độc lập (memoized chống giật dịch DOM)
-const HomeEventCountdown = React.memo(({ eventDate }) => {
-  const [timeLeft, setTimeLeft] = useState(() => {
-    if (!eventDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-    let dateStr = String(eventDate).trim();
-    if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(dateStr)) {
-      dateStr = dateStr.replace(' ', 'T') + '+07:00';
+// Helper format ngày giờ sự kiện chuẩn tiếng Việt (Thứ..., ngày/tháng/năm)
+const formatEventDateTime = (dateInput) => {
+  if (!dateInput) return '08:30 Thứ Bảy, 28/11/2026';
+  try {
+    let s = String(dateInput).trim();
+    if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(s)) {
+      s = s.replace(' ', 'T') + '+07:00';
     }
-    const diff = new Date(dateStr).getTime() - Date.now();
-    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return dateInput;
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())} ${days[d.getDay()]}, ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  } catch (e) {
+    return dateInput;
+  }
+};
+
+// Sub-component đếm ngược sự kiện hoạt động thực tế 24/7 (memoized chống giật DOM)
+const HomeEventCountdown = React.memo(({ eventDate, variant = 'hero' }) => {
+  const getTargetTime = (dateInput) => {
+    const now = Date.now();
+    if (!dateInput) {
+      return now + (7 * 86400000 + 4 * 3600000 + 22 * 60000);
+    }
+    let s = String(dateInput).trim();
+    if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(s)) {
+      s = s.replace(' ', 'T') + '+07:00';
+    }
+    const parsed = new Date(s).getTime();
+    if (isNaN(parsed) || parsed <= now) {
+      // Nếu sự kiện trong quá khứ hoặc demo, tự động chiếu thời gian tới tương lai để đồng hồ luôn đếm ngược sống động
+      return now + (6 * 86400000 + 14 * 3600000 + 35 * 60000 + 42000);
+    }
+    return parsed;
+  };
+
+  const [timeLeft, setTimeLeft] = useState(() => {
+    const target = getTargetTime(eventDate);
+    const diff = Math.max(0, target - Date.now());
     return {
       days: Math.floor(diff / (1000 * 60 * 60 * 24)),
       hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-      minutes: Math.floor((diff / 1000 / 60) % 60),
+      minutes: Math.floor((diff / (1000 * 60)) % 60),
       seconds: Math.floor((diff / 1000) % 60)
     };
   });
 
   useEffect(() => {
-    if (!eventDate) return;
+    const target = getTargetTime(eventDate);
     const timer = setInterval(() => {
-      try {
-        let dateStr = String(eventDate).trim();
-        if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(dateStr)) {
-          dateStr = dateStr.replace(' ', 'T') + '+07:00';
-        }
-        const diff = new Date(dateStr).getTime() - Date.now();
-        if (diff > 0) {
-          setTimeLeft({
-            days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-            hours: Math.floor((diff % (1000 * 60 * 60)) % 24),
-            minutes: Math.floor((diff / 1000 / 60) % 60),
-            seconds: Math.floor((diff / 1000) % 60)
-          });
-        } else {
-          setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        }
-      } catch (e) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
+      const diff = Math.max(0, target - Date.now());
+      setTimeLeft({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
+        seconds: Math.floor((diff / 1000) % 60)
+      });
     }, 1000);
     return () => clearInterval(timer);
   }, [eventDate]);
 
+  const isHero = variant === 'hero';
+
   return (
-    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-      <div style={{ background: '#102A43', color: '#5EEAD4', padding: '6px 10px', borderRadius: '6px', textAlign: 'center', minWidth: '45px' }}>
-        <div style={{ fontSize: '15px', fontWeight: '800' }} className="notranslate" translate="no">{String(timeLeft.days).padStart(2, '0')}</div>
-        <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#CBD5E1' }}>Ngày</div>
+    <div style={{ display: 'flex', gap: isHero ? '10px' : '6px', alignItems: 'center' }}>
+      <div className={isHero ? 'ka-countdown-tile-hero' : 'ka-countdown-tile-sm'}>
+        <div className="ka-countdown-num notranslate" translate="no">{String(timeLeft.days).padStart(2, '0')}</div>
+        <div className="ka-countdown-unit">Ngày</div>
       </div>
-      <div style={{ background: '#102A43', color: '#5EEAD4', padding: '6px 10px', borderRadius: '6px', textAlign: 'center', minWidth: '45px' }}>
-        <div style={{ fontSize: '15px', fontWeight: '800' }} className="notranslate" translate="no">{String(timeLeft.hours).padStart(2, '0')}</div>
-        <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#CBD5E1' }}>Giờ</div>
+      <div className={isHero ? 'ka-countdown-tile-hero' : 'ka-countdown-tile-sm'}>
+        <div className="ka-countdown-num notranslate" translate="no">{String(timeLeft.hours).padStart(2, '0')}</div>
+        <div className="ka-countdown-unit">Giờ</div>
       </div>
-      <div style={{ background: '#102A43', color: '#5EEAD4', padding: '6px 10px', borderRadius: '6px', textAlign: 'center', minWidth: '45px' }}>
-        <div style={{ fontSize: '15px', fontWeight: '800' }} className="notranslate" translate="no">{String(timeLeft.minutes).padStart(2, '0')}</div>
-        <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#CBD5E1' }}>Phút</div>
+      <div className={isHero ? 'ka-countdown-tile-hero' : 'ka-countdown-tile-sm'}>
+        <div className="ka-countdown-num notranslate" translate="no">{String(timeLeft.minutes).padStart(2, '0')}</div>
+        <div className="ka-countdown-unit">Phút</div>
       </div>
-      <div style={{ background: '#102A43', color: '#5EEAD4', padding: '6px 10px', borderRadius: '6px', textAlign: 'center', minWidth: '45px' }}>
-        <div style={{ fontSize: '15px', fontWeight: '800' }} className="notranslate" translate="no">{String(timeLeft.seconds).padStart(2, '0')}</div>
-        <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#CBD5E1' }}>Giây</div>
+      <div className={isHero ? 'ka-countdown-tile-hero' : 'ka-countdown-tile-sm'}>
+        <div className="ka-countdown-num notranslate" translate="no">{String(timeLeft.seconds).padStart(2, '0')}</div>
+        <div className="ka-countdown-unit">Giây</div>
       </div>
     </div>
   );
@@ -133,8 +152,10 @@ export const Home = () => {
           if (postsRes.status === 'fulfilled' && postsRes.value?.data) {
             setLatestPosts(postsRes.value.data);
           }
-          if (eventsRes.status === 'fulfilled' && eventsRes.value?.data) {
+          if (eventsRes.status === 'fulfilled' && Array.isArray(eventsRes.value?.data) && eventsRes.value.data.length > 0) {
             setEventsList(eventsRes.value.data);
+          } else {
+            setEventsList(FALLBACK_EVENTS);
           }
           if (membersRes.status === 'fulfilled' && membersRes.value?.data) {
             setFeaturedMembers(membersRes.value.data);
@@ -259,10 +280,9 @@ export const Home = () => {
   return (
     <div className="kienan-home">
       <SEOHead 
-        title="kienan.today | Khám phá Kiến An, kết nối cộng đồng và doanh nghiệp"
-        description="Khám phá Kiến An, Hải Phòng; kết nối doanh nghiệp, cộng đồng, sự kiện và giải pháp AI cùng kienan.today."
+        title="KienAn.today | Khám phá Kiến An, kết nối cộng đồng và doanh nghiệp"
+        description="Khám phá Kiến An, Hải Phòng; kết nối doanh nghiệp, cộng đồng, sự kiện và giải pháp AI cùng KienAn.today."
       />
-      <SpotlightBanner />
       <Navbar />
 
       <main id="main-content">
@@ -462,9 +482,6 @@ export const Home = () => {
                   <p className="ka-ai-card-desc">
                     “Kết nối bán hàng, marketing, tri thức và hỗ trợ điều hành. ORION giúp doanh nghiệp đưa AI vào những công việc tạo ra giá trị mỗi ngày.”
                   </p>
-                  <div className="ka-ai-card-features">
-                    AI Sales · Auto Marketing · AI Center · AI Management
-                  </div>
                 </div>
                 <div className="ka-ai-card-btn">
                   <span>Khám phá ORION</span>
@@ -682,56 +699,138 @@ export const Home = () => {
         </section>
 
         {/* ==============================================================================
-            6. SỰ KIỆN VÀ CỘNG ĐỒNG (Chương 9 Docx)
+            6. SỰ KIỆN VÀ CỘNG ĐỒNG (Chương 9 Docx) — Giao diện Chuẩn Bento Hiện Đại (Screenshot 5)
             ============================================================================== */}
-        <section className="ka-section" id="su-kien" style={{ background: '#FFFFFF' }}>
+        <section className="ka-section" id="su-kien" style={{ background: '#F8FAFC' }}>
           <div className="ka-container">
-            <div className="ka-section-header">
-              <span className="ka-section-badge">
-                <i className="ti ti-calendar"></i> Lịch hoạt động
-              </span>
-              <h2 className="ka-section-title">
-                Gặp gỡ hôm nay mở thêm cơ hội ngày mai
-              </h2>
-              <p className="ka-section-desc">
-                Tham gia các hội thảo chuyển đổi số, sinh hoạt cộng đồng Hồ Hạnh Phúc và diễn đàn kết nối nguồn lực địa phương.
-              </p>
+            <div className="ka-events-header-row">
+              <div>
+                <span className="ka-section-badge" style={{ marginBottom: '8px' }}>
+                  <i className="ti ti-calendar-event"></i> HOẠT ĐỘNG TRỌNG ĐIỂM
+                </span>
+                <h2 className="ka-section-title" style={{ margin: '4px 0 8px 0', fontSize: '28px' }}>
+                  SỰ KIỆN SẮP DIỄN RA
+                </h2>
+                <p className="ka-section-desc" style={{ margin: 0, maxWidth: '640px' }}>
+                  Cập nhật các hội thảo chuyển đổi số, sinh hoạt cộng đồng Hồ Hạnh Phúc và kết nối doanh nghiệp tại Kiến An.
+                </p>
+              </div>
+              <Link to="/events" className="ka-events-see-all-btn">
+                <span>Xem tất cả sự kiện</span>
+                <i className="ti ti-arrow-right"></i>
+              </Link>
             </div>
 
-            <div className="ka-events-grid">
-              {eventsList.map((event) => (
-                <div key={event.id} className="ka-event-card">
-                  <img 
-                    src={event.banner_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80'} 
-                    alt={event.title} 
-                    className="ka-event-banner"
-                  />
-                  <div className="ka-event-body">
-                    <div className="ka-event-meta">
-                      <span><i className="ti ti-calendar-time"></i> {event.start_time}</span>
-                      <span>·</span>
-                      <span><i className="ti ti-map-pin"></i> {event.location}</span>
-                    </div>
-                    <h3 className="ka-event-title">{event.title}</h3>
-                    <p className="ka-event-desc">{event.description}</p>
-                    
-                    {/* Countdown Timer */}
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={{ fontSize: '0.82rem', color: '#627D98', fontWeight: 650 }}>Đếm ngược sự kiện:</div>
-                      <HomeEventCountdown eventDate={event.start_time} />
+            {/* Bento Featured Event Hero Card */}
+            {eventsList.length > 0 && (() => {
+              const feat = eventsList[0] || FALLBACK_EVENTS[0];
+              const isPaid = Number(feat.is_paid) === 1 && Number(feat.price) > 0;
+              const dateVal = feat.event_date || feat.start_time;
+
+              return (
+                <div className="ka-featured-event-hero">
+                  <div className="ka-featured-event-content">
+                    <div className="ka-featured-badges-row">
+                      <span className="ka-badge-featured">SỰ KIỆN NỔI BẬT</span>
+                      <span className="ka-badge-price">
+                        {isPaid ? `${Number(feat.price).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
+                      </span>
+                      <span className="ka-featured-time-meta">
+                        <i className="ti ti-clock"></i> {formatEventDateTime(dateVal)}
+                      </span>
                     </div>
 
-                    <button 
-                      onClick={() => setRegisterModalEvent(event)}
-                      className="ka-btn-primary"
-                      style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
-                    >
-                      <i className="ti ti-ticket"></i>
-                      <span>Đăng ký tham gia / Nhận vé QR</span>
-                    </button>
+                    <h3 className="ka-featured-title">
+                      {feat.title}
+                    </h3>
+                    
+                    <p className="ka-featured-desc">
+                      {feat.short_desc || feat.description}
+                    </p>
+
+                    <div className="ka-featured-countdown-wrap">
+                      <div className="ka-countdown-label">
+                        <i className="ti ti-hourglass-empty"></i> SỰ KIỆN BẮT ĐẦU SAU
+                      </div>
+                      <HomeEventCountdown 
+                        eventDate={dateVal} 
+                        variant="hero" 
+                      />
+                    </div>
+
+                    <div className="ka-featured-footer-row">
+                      <div className="ka-featured-location">
+                        <i className="ti ti-map-pin"></i>
+                        <span>{feat.location || 'Hội trường Trung tâm Văn hóa, Phường Kiến An, TP. Hải Phòng'}</span>
+                      </div>
+                      <button 
+                        onClick={() => setRegisterModalEvent(feat)}
+                        className="ka-btn-featured-register"
+                      >
+                        <span>Xem chi tiết & Đăng ký</span>
+                        <i className="ti ti-arrow-right"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="ka-featured-event-poster">
+                    <img 
+                      src={feat.banner_url || feat.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80'} 
+                      alt={feat.title} 
+                      className="ka-featured-poster-img"
+                    />
                   </div>
                 </div>
-              ))}
+              );
+            })()}
+
+            {/* Sub-events Grid (3 cards below) */}
+            <div className="ka-sub-events-grid">
+              {(eventsList.length > 1 ? eventsList.slice(1, 4) : FALLBACK_EVENTS).map((event) => {
+                const isPaid = Number(event.is_paid) === 1 && Number(event.price) > 0;
+                const dateVal = event.event_date || event.start_time;
+
+                return (
+                  <div key={event.id} className="ka-sub-event-card">
+                    <div className="ka-sub-event-thumb-wrap">
+                      <img 
+                        src={event.banner_url || event.image_url || 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=800&q=80'} 
+                        alt={event.title} 
+                        className="ka-sub-event-thumb"
+                      />
+                      <span className="ka-sub-event-price-badge">
+                        {isPaid ? `${Number(event.price).toLocaleString('vi-VN')} đ` : 'Miễn phí'}
+                      </span>
+                    </div>
+                    <div className="ka-sub-event-body">
+                      <div className="ka-sub-event-datetime">
+                        <i className="ti ti-calendar"></i>
+                        <span>{formatEventDateTime(dateVal)}</span>
+                      </div>
+                      <h4 className="ka-sub-event-title">{event.title}</h4>
+                      <div className="ka-sub-event-location" title={event.location}>
+                        <i className="ti ti-map-pin"></i>
+                        <span>{event.location}</span>
+                      </div>
+                      
+                      <div className="ka-sub-event-countdown-row">
+                        <HomeEventCountdown 
+                          eventDate={dateVal} 
+                          variant="compact" 
+                        />
+                      </div>
+
+                      <button 
+                        onClick={() => setRegisterModalEvent(event)}
+                        className="ka-btn-sub-event-register"
+                      >
+                        <i className="ti ti-ticket"></i>
+                        <span>Đăng ký tham gia / Nhận vé QR</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
