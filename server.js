@@ -154,14 +154,26 @@ async function generateUniqueSubCategorySlug(name, subId = null) {
   return slug;
 }
 
+// Helper kiểm tra API key có hợp lệ hay không (không phải placeholder từ .env.example)
+function isValidKey(key) {
+  if (!key || typeof key !== 'string') return false;
+  const k = key.trim();
+  if (!k) return false;
+  const lower = k.toLowerCase();
+  if (lower.includes('your_') || lower.includes('placeholder') || lower.includes('your-key')) return false;
+  if (k === '(key đã lưu)' || k === '**************************************') return false;
+  return true;
+}
+
 // Helper đọc API key động từ config.json hoặc file .env
 function getAPIKey(provider) {
   const configPath = path.join(__dirname, 'config.json');
   if (fs.existsSync(configPath)) {
     try {
       const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      if (cfg[provider + '_API_KEY']) {
-        return cfg[provider + '_API_KEY'];
+      const val = cfg[provider + '_API_KEY'];
+      if (isValidKey(val)) {
+        return val.trim();
       }
     } catch (e) {
       console.error('Lỗi đọc config.json:', e.message);
@@ -175,7 +187,11 @@ function getAPIKey(provider) {
     deepseek: process.env.DEEPSEEK_API_KEY,
     openrouter: process.env.OPENROUTER_API_KEY,
   };
-  return keys[provider] || '';
+  const envVal = keys[provider];
+  if (isValidKey(envVal)) {
+    return envVal.trim();
+  }
+  return '';
 }
 
 app.use(cors({ origin: process.env.ALLOWED_ORIGIN || '*' }));
@@ -1950,21 +1966,7 @@ app.get('/api/admin/get-config', anyAuthMiddleware, async (req, res) => {
     const [rows] = await db.query('SELECT provider, model, system_instruction FROM ai_config WHERE is_active = 1 LIMIT 1');
     const config = rows[0] || { provider: 'anthropic', model: 'claude-sonnet-4-6', system_instruction: null };
 
-    let hasKey = false;
-    const configPath = path.join(__dirname, 'config.json');
-    if (fs.existsSync(configPath)) {
-      try {
-        const cfg = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        if (cfg[config.provider + '_API_KEY']) {
-          hasKey = true;
-        }
-      } catch {}
-    }
-    // Check fallback process.env
-    if (!hasKey) {
-      const key = getAPIKey(config.provider);
-      if (key) hasKey = true;
-    }
+    const hasKey = !!getAPIKey(config.provider);
 
     res.json({ provider: config.provider, model: config.model, system_instruction: config.system_instruction || '', hasKey });
   } catch (err) {
@@ -3665,7 +3667,7 @@ app.post('/api/chat', anyAuthMiddleware, async (req, res) => {
   }
 
   const getRequestKey = (prov) => {
-    if (apiKey && apiKey !== '(key đã lưu)' && apiKey !== '**************************************' && apiKey.trim() !== '') {
+    if (isValidKey(apiKey)) {
       return apiKey.trim();
     }
     return getAPIKey(prov);
@@ -3683,7 +3685,7 @@ app.post('/api/chat', anyAuthMiddleware, async (req, res) => {
       const [posts]   = await db.query("SELECT p.title,p.type,p.contact_info,m.name AS company FROM posts p JOIN members m ON p.member_id=m.id WHERE p.status='approved' ORDER BY p.created_at DESC LIMIT 10");
       const [events]  = await db.query("SELECT title,event_date,location,organizer FROM events WHERE status='upcoming' ORDER BY event_date ASC LIMIT 5");
 
-      // Đọc các tệp dữ liệu kiến thức lơ lửng trong thư mục knowledge_base
+      // Đọc các tệp dữ liệu kiến thức lơ lửng trong thư mục knowledge_base (giới hạn ký tự tối đa 15000 để tránh làm nghẽn prompt)
       let knowledgeText = '';
       const KB_DIR = path.join(__dirname, 'knowledge_base');
       if (fs.existsSync(KB_DIR)) {
@@ -3692,7 +3694,9 @@ app.post('/api/chat', anyAuthMiddleware, async (req, res) => {
           const filepath = path.join(KB_DIR, file);
           if (fs.statSync(filepath).isFile()) {
             const content = fs.readFileSync(filepath, 'utf8');
-            knowledgeText += `\nTÀI LIỆU KIẾN THỨC BỔ SUNG (${file}):\n${content}\n`;
+            if (knowledgeText.length < 15000) {
+              knowledgeText += `\nTÀI LIỆU KIẾN THỨC BỔ SUNG (${file}):\n${content.substring(0, 5000)}\n`;
+            }
           }
         }
       }
@@ -3732,9 +3736,10 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
 
     if (provider === 'anthropic') {
       const activeKey = getRequestKey('anthropic');
-      if (!activeKey) throw new Error('Chưa cấu hình API Key cho Anthropic.');
+      if (!activeKey) throw new Error('Chưa cấu hình API Key cho Anthropic. Quý vị vui lòng vào Cài đặt để cấu hình.');
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method : 'POST',
+        signal : AbortSignal.timeout(35000),
         headers: { 'Content-Type': 'application/json', 'x-api-key': activeKey, 'anthropic-version': '2023-06-01' },
         body   : JSON.stringify({ model, max_tokens: 1024, system: memberContext, messages }),
       });
@@ -3743,10 +3748,11 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
     }
     else if (provider === 'openai') {
       const activeKey = getRequestKey('openai');
-      if (!activeKey) throw new Error('Chưa cấu hình API Key cho OpenAI.');
+      if (!activeKey) throw new Error('Chưa cấu hình API Key cho OpenAI. Quý vị vui lòng vào Cài đặt để cấu hình.');
       const msgs = [{ role: 'system', content: memberContext }, ...messages];
       const r = await fetch('https://api.openai.com/v1/chat/completions', {
         method : 'POST',
+        signal : AbortSignal.timeout(35000),
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + activeKey },
         body   : JSON.stringify({ model, max_tokens: 1024, messages: msgs }),
       });
@@ -3755,10 +3761,11 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
     }
     else if (provider === 'gemini') {
       const activeKey = getRequestKey('gemini');
-      if (!activeKey) throw new Error('Chưa cấu hình API Key cho Gemini.');
+      if (!activeKey) throw new Error('Chưa cấu hình API Key cho Gemini. Quý vị vui lòng vào Cài đặt để cấu hình.');
       const contents = messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`, {
         method : 'POST',
+        signal : AbortSignal.timeout(35000),
         headers: { 'Content-Type': 'application/json' },
         body   : JSON.stringify({ system_instruction: { parts: [{ text: memberContext }] }, contents, generationConfig: { maxOutputTokens: 1024 } }),
       });
@@ -3767,10 +3774,11 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
     }
     else if (provider === 'deepseek') {
       const activeKey = getRequestKey('deepseek');
-      if (!activeKey) throw new Error('Chưa cấu hình API Key cho DeepSeek.');
+      if (!activeKey) throw new Error('Chưa cấu hình API Key cho DeepSeek. Quý vị vui lòng vào Cài đặt để cấu hình.');
       const msgs = [{ role: 'system', content: memberContext }, ...messages];
       const r = await fetch('https://api.deepseek.com/v1/chat/completions', {
         method : 'POST',
+        signal : AbortSignal.timeout(35000),
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + activeKey },
         body   : JSON.stringify({ model, max_tokens: 1024, messages: msgs }),
       });
@@ -3786,19 +3794,21 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
           const contents = messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
           const gr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${fallbackGeminiKey}`, {
             method : 'POST',
+            signal : AbortSignal.timeout(35000),
             headers: { 'Content-Type': 'application/json' },
             body   : JSON.stringify({ system_instruction: { parts: [{ text: memberContext }] }, contents, generationConfig: { maxOutputTokens: 1024 } }),
           });
           const gd = await safeParseJsonResponse(gr, 'Gemini');
           result = { text: gd.candidates?.[0]?.content?.parts?.[0]?.text || '', usage: { input: gd.usageMetadata?.promptTokenCount, output: gd.usageMetadata?.candidatesTokenCount } };
         } else {
-          throw new Error('Chưa cấu hình API Key cho OpenRouter hoặc Gemini.');
+          throw new Error('Chưa cấu hình API Key cho OpenRouter hoặc Gemini. Vui lòng vào Cài đặt AI trong trang Quản trị để thiết lập API Key.');
         }
       } else {
         const msgs = [{ role: 'system', content: memberContext }, ...messages];
         try {
           const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method : 'POST',
+            signal : AbortSignal.timeout(35000),
             headers: { 
               'Content-Type': 'application/json', 
               'Authorization': 'Bearer ' + activeKey, 
@@ -3817,6 +3827,7 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
             const contents = messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
             const gr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${fallbackGeminiKey}`, {
               method : 'POST',
+              signal : AbortSignal.timeout(35000),
               headers: { 'Content-Type': 'application/json' },
               body   : JSON.stringify({ system_instruction: { parts: [{ text: memberContext }] }, contents, generationConfig: { maxOutputTokens: 1024 } }),
             });
