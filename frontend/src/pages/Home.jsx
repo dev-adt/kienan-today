@@ -496,7 +496,7 @@ export const Home = () => {
                   </div>
 
                   <div className="ka-enterprise-slogan">
-                    “LIVICO mang đến giải pháp bảo vệ sự an toàn tuyệt đối cho con người và đem lại gia tài thịnh vượng cho khách hàng — Uy tín tạo dựng thành công, 100% không chậm tiến độ.”
+                    “LIVICO mang đến giải pháp bảo vệ sự an toàn tuyệt đối cho con người và đem lại gia tài thịnh vượng cho khách hàng — Uy tín tạo dựng thành công.”
                   </div>
 
                   {/* 4 Thống kê ấn tượng */}
@@ -664,16 +664,9 @@ export const Home = () => {
                     <i className="ti ti-award"></i>
                     <span>CÔNG TY CỔ PHẦN ADT QUỐC TẾ</span>
                   </div>
-                  <h2 className="ka-ai-banner-title">
+                  <h2 className="ka-ai-banner-title" style={{ marginBottom: 0 }}>
                     Làm chủ AI <span>bứt phá tương lai</span>
                   </h2>
-                  <p className="ka-ai-banner-desc">
-                    “Đưa AI vào công việc thực tế — hỗ trợ chính quyền, phát triển doanh nghiệp và nâng cao hiệu quả tuyển sinh.”
-                  </p>
-                  <a href="#ai-solutions-cards" className="ka-ai-banner-btn">
-                    <span>Khám phá giải pháp AI</span>
-                    <i className="ti ti-arrow-down"></i>
-                  </a>
                 </div>
               </div>
             </div>

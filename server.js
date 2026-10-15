@@ -3716,6 +3716,20 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
   try {
     let result;
 
+    const safeParseJsonResponse = async (r, provName) => {
+      const contentType = r.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await r.text();
+        throw new Error(`Dịch vụ ${provName} phản hồi lỗi (${r.status}): ${text.substring(0, 150)}`);
+      }
+      const data = await r.json();
+      if (data.error) {
+        const errMsg = typeof data.error === 'object' ? (data.error.message || JSON.stringify(data.error)) : data.error;
+        throw new Error(errMsg);
+      }
+      return data;
+    };
+
     if (provider === 'anthropic') {
       const activeKey = getRequestKey('anthropic');
       if (!activeKey) throw new Error('Chưa cấu hình API Key cho Anthropic.');
@@ -3724,8 +3738,7 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
         headers: { 'Content-Type': 'application/json', 'x-api-key': activeKey, 'anthropic-version': '2023-06-01' },
         body   : JSON.stringify({ model, max_tokens: 1024, system: memberContext, messages }),
       });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error.message);
+      const d = await safeParseJsonResponse(r, 'Anthropic');
       result = { text: d.content?.[0]?.text || '', usage: { input: d.usage?.input_tokens, output: d.usage?.output_tokens } };
     }
     else if (provider === 'openai') {
@@ -3737,8 +3750,7 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + activeKey },
         body   : JSON.stringify({ model, max_tokens: 1024, messages: msgs }),
       });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error.message);
+      const d = await safeParseJsonResponse(r, 'OpenAI');
       result = { text: d.choices?.[0]?.message?.content || '', usage: { input: d.usage?.prompt_tokens, output: d.usage?.completion_tokens } };
     }
     else if (provider === 'gemini') {
@@ -3750,8 +3762,7 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
         headers: { 'Content-Type': 'application/json' },
         body   : JSON.stringify({ system_instruction: { parts: [{ text: memberContext }] }, contents, generationConfig: { maxOutputTokens: 1024 } }),
       });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error.message);
+      const d = await safeParseJsonResponse(r, 'Gemini');
       result = { text: d.candidates?.[0]?.content?.parts?.[0]?.text || '', usage: { input: d.usageMetadata?.promptTokenCount, output: d.usageMetadata?.candidatesTokenCount } };
     }
     else if (provider === 'deepseek') {
@@ -3763,22 +3774,59 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + activeKey },
         body   : JSON.stringify({ model, max_tokens: 1024, messages: msgs }),
       });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error.message);
+      const d = await safeParseJsonResponse(r, 'DeepSeek');
       result = { text: d.choices?.[0]?.message?.content || '', usage: { input: d.usage?.prompt_tokens, output: d.usage?.completion_tokens } };
     }
     else if (provider === 'openrouter') {
       const activeKey = getRequestKey('openrouter');
-      if (!activeKey) throw new Error('Chưa cấu hình API Key cho OpenRouter.');
-      const msgs = [{ role: 'system', content: memberContext }, ...messages];
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + activeKey, 'HTTP-Referer': process.env.SITE_URL || 'https://bizhub.vn', 'X-Title': 'BizHub AI' },
-        body   : JSON.stringify({ model, max_tokens: 1024, messages: msgs }),
-      });
-      const d = await r.json();
-      if (d.error) throw new Error(d.error.message);
-      result = { text: d.choices?.[0]?.message?.content || '', usage: { input: d.usage?.prompt_tokens, output: d.usage?.completion_tokens } };
+      if (!activeKey) {
+        // Nếu chưa cấu hình OpenRouter, thử dùng Gemini nếu có
+        const fallbackGeminiKey = getAPIKey('gemini');
+        if (fallbackGeminiKey) {
+          const contents = messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+          const gr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${fallbackGeminiKey}`, {
+            method : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body   : JSON.stringify({ system_instruction: { parts: [{ text: memberContext }] }, contents, generationConfig: { maxOutputTokens: 1024 } }),
+          });
+          const gd = await safeParseJsonResponse(gr, 'Gemini');
+          result = { text: gd.candidates?.[0]?.content?.parts?.[0]?.text || '', usage: { input: gd.usageMetadata?.promptTokenCount, output: gd.usageMetadata?.candidatesTokenCount } };
+        } else {
+          throw new Error('Chưa cấu hình API Key cho OpenRouter hoặc Gemini.');
+        }
+      } else {
+        const msgs = [{ role: 'system', content: memberContext }, ...messages];
+        try {
+          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method : 'POST',
+            headers: { 
+              'Content-Type': 'application/json', 
+              'Authorization': 'Bearer ' + activeKey, 
+              'HTTP-Referer': process.env.SITE_URL || 'https://kienan.today', 
+              'X-Title': 'KienAn.today AI',
+              'User-Agent': 'KienAnToday/1.0'
+            },
+            body   : JSON.stringify({ model, max_tokens: 1024, messages: msgs }),
+          });
+          const d = await safeParseJsonResponse(r, 'OpenRouter');
+          result = { text: d.choices?.[0]?.message?.content || '', usage: { input: d.usage?.prompt_tokens, output: d.usage?.completion_tokens } };
+        } catch (openRouterErr) {
+          console.warn('OpenRouter lỗi, đang chuyển dự phòng sang Gemini:', openRouterErr.message);
+          const fallbackGeminiKey = getAPIKey('gemini');
+          if (fallbackGeminiKey) {
+            const contents = messages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+            const gr = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${fallbackGeminiKey}`, {
+              method : 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body   : JSON.stringify({ system_instruction: { parts: [{ text: memberContext }] }, contents, generationConfig: { maxOutputTokens: 1024 } }),
+            });
+            const gd = await safeParseJsonResponse(gr, 'Gemini');
+            result = { text: gd.candidates?.[0]?.content?.parts?.[0]?.text || '', usage: { input: gd.usageMetadata?.promptTokenCount, output: gd.usageMetadata?.candidatesTokenCount } };
+          } else {
+            throw openRouterErr;
+          }
+        }
+      }
     }
     else if (provider === 'ollama') {
       const base = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
@@ -3788,7 +3836,7 @@ ${knowledgeText ? `\n${knowledgeText}` : ''}`;
         headers: { 'Content-Type': 'application/json' },
         body   : JSON.stringify({ model, stream: false, messages: msgs }),
       });
-      const d = await r.json();
+      const d = await safeParseJsonResponse(r, 'Ollama');
       result = { text: d.message?.content || '', usage: { input: d.prompt_eval_count, output: d.eval_count } };
     }
     else {
@@ -3916,7 +3964,13 @@ Preserve all HTML tags, line breaks, formatting, and markdown if present. Do not
     else if (provider === 'openrouter') {
       const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method : 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + apiKey, 'HTTP-Referer': process.env.SITE_URL || 'https://bizhub.vn', 'X-Title': 'BizHub AI' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': 'Bearer ' + apiKey, 
+          'HTTP-Referer': process.env.SITE_URL || 'https://kienan.today', 
+          'X-Title': 'KienAn.today AI',
+          'User-Agent': 'KienAnToday/1.0'
+        },
         body   : JSON.stringify({ 
           model, 
           max_tokens: 2048, 

@@ -21,7 +21,13 @@ export const AIChat = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [aiConfig, setAiConfig] = useState({ provider: 'Gemini', model: 'gemini-1.5-flash' });
   const [selectedModelOverride, setSelectedModelOverride] = useState(() => {
-    return localStorage.getItem('kienan_chat_model_override') || '';
+    const val = localStorage.getItem('kienan_chat_model_override') || localStorage.getItem('doson_chat_model_override') || '';
+    if (val.includes('gemini-3') || val.includes('opus-4')) {
+      localStorage.removeItem('kienan_chat_model_override');
+      localStorage.removeItem('doson_chat_model_override');
+      return '';
+    }
+    return val;
   });
 
   const autoSentRef = useRef(false);
@@ -204,7 +210,15 @@ export const AIChat = () => {
         })
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data;
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const textErr = await res.text();
+        throw new Error(`Máy chủ phản hồi mã ${res.status}: ${textErr.substring(0, 150)}`);
+      }
+
       if (!res.ok) {
         throw new Error(data.error || t('error_ai_call'));
       }
@@ -214,7 +228,12 @@ export const AIChat = () => {
       // Refresh chat session list
       loadSessions(false);
     } catch (e) {
-      alert(e.message || t('error_sending_message'));
+      console.error('AIChat send error:', e);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: `⚠️ Có lỗi khi xử lý câu hỏi: ${e.message || t('error_sending_message')}. Quý vị vui lòng thử lại hoặc chọn mô hình Mặc định hệ thống ở bảng Cài đặt bên phải.`,
+        created_at: new Date().toISOString()
+      }]);
     } finally {
       setSending(false);
     }
@@ -567,8 +586,8 @@ export const AIChat = () => {
                   <option value="deepseek/deepseek-chat">DeepSeek V3 (Chat)</option>
                   <option value="deepseek/deepseek-r1">DeepSeek R1 (Suy luận)</option>
                   <option value="openai/gpt-4o">OpenAI GPT-4o</option>
-                  <option value="anthropic/claude-opus-4">Claude Opus 4</option>
-                  <option value="google/gemini-3-flash-preview">Gemini 3 Flash</option>
+                  <option value="anthropic/claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+                  <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
                 </select>
               </div>
             ) : (
