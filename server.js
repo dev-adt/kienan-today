@@ -4,11 +4,11 @@
  */
 
 process.env.TZ = 'Asia/Ho_Chi_Minh';
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const express = require('express');
 const cors    = require('cors');
 const bcrypt  = require('bcrypt');
-const fetch   = (...a) => import('node-fetch').then(({ default: f }) => f(...a));
+const fetch   = typeof globalThis.fetch === 'function' ? globalThis.fetch : (...a) => import('node-fetch').then(({ default: f }) => f(...a));
 const path    = require('path');
 const fs      = require('fs');
 const crypto  = require('crypto');
@@ -165,8 +165,9 @@ function isValidKey(key) {
   return true;
 }
 
-// Helper đọc API key động từ config.json hoặc file .env
+// Helper đọc API key động từ config.json, biến môi trường hoặc trực tiếp từ file .env
 function getAPIKey(provider) {
+  // 1. Kiểm tra trong config.json (nếu cấu hình qua web Admin)
   const configPath = path.join(__dirname, 'config.json');
   if (fs.existsSync(configPath)) {
     try {
@@ -179,18 +180,52 @@ function getAPIKey(provider) {
       console.error('Lỗi đọc config.json:', e.message);
     }
   }
-  // Fallback về process.env
+
+  // 2. Kiểm tra trong process.env (kèm các biến tương đương)
   const keys = {
-    anthropic: process.env.ANTHROPIC_API_KEY,
+    anthropic: process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY,
     openai: process.env.OPENAI_API_KEY,
-    gemini: process.env.GEMINI_API_KEY,
+    gemini: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
     deepseek: process.env.DEEPSEEK_API_KEY,
-    openrouter: process.env.OPENROUTER_API_KEY,
+    openrouter: process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_API_KEY || process.env.OPENROUTER_KEY,
   };
   const envVal = keys[provider];
   if (isValidKey(envVal)) {
     return envVal.trim();
   }
+
+  // 3. Đọc trực tiếp từ file .env trên ổ đĩa (chống dính cache biến môi trường của PM2)
+  const envPath = path.join(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    try {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const lines = envContent.split(/\r?\n/);
+      const prefixList = {
+        anthropic: ['ANTHROPIC_API_KEY', 'CLAUDE_API_KEY'],
+        openai: ['OPENAI_API_KEY'],
+        gemini: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
+        deepseek: ['DEEPSEEK_API_KEY'],
+        openrouter: ['OPENROUTER_API_KEY', 'OPEN_ROUTER_API_KEY', 'OPENROUTER_KEY'],
+      }[provider] || [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        for (const prefix of prefixList) {
+          if (trimmed.startsWith(prefix + '=') || trimmed.startsWith(prefix + ' =')) {
+            let val = trimmed.substring(trimmed.indexOf('=') + 1).trim();
+            val = val.replace(/^['"](.*)['"]$/, '$1'); // Loại bỏ dấu nháy
+            if (isValidKey(val)) {
+              return val;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Lỗi đọc file .env trực tiếp:', e.message);
+    }
+  }
+
   return '';
 }
 
@@ -3672,6 +3707,8 @@ app.post('/api/chat', anyAuthMiddleware, async (req, res) => {
     }
     return getAPIKey(prov);
   };
+
+  console.log(`[AIChat] Nhận yêu cầu chat | Provider: ${provider} | Model: ${model} | User: ${req.authUser?.id || 'anon'}`);
 
   // Lấy context hội viên từ DB cho AI
   let memberContext = system || '';
