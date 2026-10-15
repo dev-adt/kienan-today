@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/LanguageContext';
@@ -6,13 +6,13 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import FloatingAIBot from '../components/FloatingAIBot';
 import SEOHead from '../components/SEOHead';
+import SpotlightBanner from '../components/SpotlightBanner';
 import brandConfig from '../brand.config';
 import { getCategoryLabel } from '../constants/categories';
 import { fetchJsonWithTimeout, FALLBACK_POSTS, FALLBACK_EVENTS, FALLBACK_MEMBERS } from '../utils/api';
-import './HomeDakLak.css';
+import './HomeKienAn.css';
 
-// Sub-component đếm ngược sự kiện trang chủ độc lập
-// Tách biệt state để KHÔNG kích hoạt re-render toàn bộ 15 section của trang chủ mỗi giây
+// Sub-component đếm ngược sự kiện độc lập (memoized chống giật dịch DOM)
 const HomeEventCountdown = React.memo(({ eventDate }) => {
   const [timeLeft, setTimeLeft] = useState(() => {
     if (!eventDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
@@ -57,238 +57,108 @@ const HomeEventCountdown = React.memo(({ eventDate }) => {
   }, [eventDate]);
 
   return (
-    <div className="countdown-timer-grid">
-      <div className="countdown-timer-unit">
-        <div className="countdown-timer-num notranslate" translate="no">{String(timeLeft.days).padStart(2, '0')}</div>
-        <div className="countdown-timer-label">Ngày</div>
+    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+      <div style={{ background: '#102A43', color: '#5EEAD4', padding: '6px 10px', borderRadius: '6px', textAlign: 'center', minWidth: '45px' }}>
+        <div style={{ fontSize: '15px', fontWeight: '800' }} className="notranslate" translate="no">{String(timeLeft.days).padStart(2, '0')}</div>
+        <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#CBD5E1' }}>Ngày</div>
       </div>
-      <div className="countdown-timer-unit">
-        <div className="countdown-timer-num notranslate" translate="no">{String(timeLeft.hours).padStart(2, '0')}</div>
-        <div className="countdown-timer-label">Giờ</div>
+      <div style={{ background: '#102A43', color: '#5EEAD4', padding: '6px 10px', borderRadius: '6px', textAlign: 'center', minWidth: '45px' }}>
+        <div style={{ fontSize: '15px', fontWeight: '800' }} className="notranslate" translate="no">{String(timeLeft.hours).padStart(2, '0')}</div>
+        <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#CBD5E1' }}>Giờ</div>
       </div>
-      <div className="countdown-timer-unit">
-        <div className="countdown-timer-num notranslate" translate="no">{String(timeLeft.minutes).padStart(2, '0')}</div>
-        <div className="countdown-timer-label">Phút</div>
+      <div style={{ background: '#102A43', color: '#5EEAD4', padding: '6px 10px', borderRadius: '6px', textAlign: 'center', minWidth: '45px' }}>
+        <div style={{ fontSize: '15px', fontWeight: '800' }} className="notranslate" translate="no">{String(timeLeft.minutes).padStart(2, '0')}</div>
+        <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#CBD5E1' }}>Phút</div>
       </div>
-      <div className="countdown-timer-unit">
-        <div className="countdown-timer-num notranslate" translate="no">{String(timeLeft.seconds).padStart(2, '0')}</div>
-        <div className="countdown-timer-label">Giây</div>
+      <div style={{ background: '#102A43', color: '#5EEAD4', padding: '6px 10px', borderRadius: '6px', textAlign: 'center', minWidth: '45px' }}>
+        <div style={{ fontSize: '15px', fontWeight: '800' }} className="notranslate" translate="no">{String(timeLeft.seconds).padStart(2, '0')}</div>
+        <div style={{ fontSize: '9px', textTransform: 'uppercase', color: '#CBD5E1' }}>Giây</div>
       </div>
     </div>
   );
 });
 
 export const Home = () => {
-  const { role, user, token } = useAuth();
-  let storedMemberUser = null;
-  try {
-    const raw = localStorage.getItem('doson_member_user');
-    if (raw) storedMemberUser = JSON.parse(raw);
-  } catch (e) {}
-  const memberToken = localStorage.getItem('doson_member_token') || (role === 'member' ? token : null);
-  const effectiveUser = (role === 'member' ? user : null) || storedMemberUser || user;
-  const isActuallyLoggedIn = Boolean(effectiveUser && (role === 'member' || !!memberToken || (user && role !== 'guest')));
-  const isLoggedIn = isActuallyLoggedIn;
-
   const { currentLang, t } = useTranslation();
   const navigate = useNavigate();
 
-  // Search State & Scope
+  // Search State
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchScope, setSearchScope] = useState('all');
 
-  // FAQ Accordion State
-  const [activeFaq, setActiveFaq] = useState(0);
-
-  // Investment Projects Filter State
-  const [selectedSector, setSelectedSector] = useState('all');
-
-  // Form Tư vấn & Hợp tác đầu tư (POST /api/leads)
+  // Form Đồng hành & Kết nối (POST /api/leads)
   const [formData, setFormData] = useState({
     fullName: '',
+    companyName: '',
     phone: '',
     email: '',
-    city: 'Đắk Lắk',
-    serviceNeed: 'Đầu tư nông nghiệp công nghệ cao & chế biến sâu',
-    companyName: '',
+    serviceNeed: 'Giới thiệu doanh nghiệp & Dịch vụ địa phương',
     notes: '',
     agreeTerms: true
   });
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
 
+  // Dynamic Live Data từ Backend
+  const [latestPosts, setLatestPosts] = useState(FALLBACK_POSTS);
+  const [eventsList, setEventsList] = useState(FALLBACK_EVENTS);
+  const [featuredMembers, setFeaturedMembers] = useState(FALLBACK_MEMBERS);
+  const [selectedPostFilter, setSelectedPostFilter] = useState('all');
+
+  // Interactive AI Assistant Box State (Section 10)
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'bot', text: 'Xin chào! Tôi là Trợ lý AI của kienan.today. Bạn muốn tìm hiểu thông tin gì về Đồi Thiên Văn, Hồ Hạnh Phúc, doanh nghiệp hay giải pháp AI?' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatBottomRef = useRef(null);
+
   // Quick Event Registration Modal State
   const [registerModalEvent, setRegisterModalEvent] = useState(null);
-  const [regForm, setRegForm] = useState({
-    fullName: '',
-    phone: '',
-    email: '',
-    company: '',
-    quantity: 1,
-    createAccount: false,
-    accountLogin: '',
-    accountPassword: '',
-    accountConfirmPassword: ''
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [accountNotice, setAccountNotice] = useState('');
-  const [accountWarning, setAccountWarning] = useState('');
-  const [checkingAccount, setCheckingAccount] = useState(false);
+  const [regForm, setRegForm] = useState({ fullName: '', phone: '', email: '', quantity: 1 });
   const [submittingReg, setSubmittingReg] = useState(false);
   const [regSuccessData, setRegSuccessData] = useState(null);
-  const [paidFlowStep, setPaidFlowStep] = useState('transfer'); // 'transfer' | 'pending_approval'
-  const [proofFile, setProofFile] = useState(null);
-  const [proofPreview, setProofPreview] = useState('');
-  const [uploadingProof, setUploadingProof] = useState(false);
-  const [copiedNote, setCopiedNote] = useState(false);
-  const [copiedBank, setCopiedBank] = useState(false);
 
-  // Dynamic Live Posts (khởi tạo từ cache)
-  const [latestPosts, setLatestPosts] = useState(() => {
-    try {
-      const cached = localStorage.getItem('dnvn_cached_home_posts');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return FALLBACK_POSTS;
-  });
-  const [loadingPosts, setLoadingPosts] = useState(false);
-
-  // Dynamic Live Events (khởi tạo từ cache)
-  const [eventsList, setEventsList] = useState(() => {
-    try {
-      const cached = localStorage.getItem('dnvn_cached_home_events');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return FALLBACK_EVENTS;
-  });
-
-  // Dynamic Live Members (khởi tạo từ cache)
-  const [featuredMembers, setFeaturedMembers] = useState(() => {
-    try {
-      const cached = localStorage.getItem('dnvn_cached_home_members');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {}
-    return FALLBACK_MEMBERS;
-  });
-
-  // Dữ liệu và ảnh bìa trực tiếp của 3 bài viết chuyên đề AI
-  const [aiTopicPosts, setAiTopicPosts] = useState(() => {
-    try {
-      const cached = localStorage.getItem('dnvn_cached_ai_topic_posts');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed && typeof parsed === 'object') return parsed;
-      }
-    } catch (e) {}
-    return { wardAi: null, orion: null, edunow: null };
-  });
-
-  // Tải dữ liệu song song từ API (Promise.allSettled) có Timeout 8s
+  // Nạp dữ liệu đồng thời từ API
   useEffect(() => {
     let isMounted = true;
     const fetchHomeData = async () => {
       try {
         const [postsRes, eventsRes, membersRes] = await Promise.allSettled([
-          fetchJsonWithTimeout('/api/posts?limit=6', {}, 8000),
-          fetchJsonWithTimeout('/api/events?limit=4', {}, 8000),
-          fetchJsonWithTimeout('/api/members?limit=3', {}, 8000)
+          fetchJsonWithTimeout('/api/posts?limit=6'),
+          fetchJsonWithTimeout('/api/events?limit=4'),
+          fetchJsonWithTimeout('/api/members?limit=4')
         ]);
 
         if (isMounted) {
-          if (postsRes.status === 'fulfilled' && postsRes.value?.success && Array.isArray(postsRes.value.data) && postsRes.value.data.length > 0) {
+          if (postsRes.status === 'fulfilled' && postsRes.value?.data) {
             setLatestPosts(postsRes.value.data);
-            try {
-              localStorage.setItem('dnvn_cached_home_posts', JSON.stringify(postsRes.value.data));
-            } catch (e) {}
           }
-          if (eventsRes.status === 'fulfilled' && eventsRes.value?.success && Array.isArray(eventsRes.value.data) && eventsRes.value.data.length > 0) {
+          if (eventsRes.status === 'fulfilled' && eventsRes.value?.data) {
             setEventsList(eventsRes.value.data);
-            try {
-              localStorage.setItem('dnvn_cached_home_events', JSON.stringify(eventsRes.value.data));
-            } catch (e) {}
           }
-          if (membersRes.status === 'fulfilled' && membersRes.value?.success && Array.isArray(membersRes.value.data) && membersRes.value.data.length > 0) {
+          if (membersRes.status === 'fulfilled' && membersRes.value?.data) {
             setFeaturedMembers(membersRes.value.data);
-            try {
-              localStorage.setItem('dnvn_cached_home_members', JSON.stringify(membersRes.value.data));
-            } catch (e) {}
           }
         }
-
-        // Tải đồng thời 3 bài viết chuyên đề AI để lấy ảnh bìa và dữ liệu chính thức
-        const aiTargets = [
-          { key: 'wardAi', slug: 'tro-ly-ai-phuong-xa' },
-          { key: 'orion', slug: 'orion-chat-loc-tinh-hoa-cua-erp-multimodel-ai-va-nen-tang-xay-dung-ai-agent-de-tao-thanh-mot-he-dieu-hanh-quan-tri-thong-minh-danh-cho-doanh-nghiep' },
-          { key: 'edunow', slug: 'edunowai-giai-phap-tro-ly-ai-tuyen-sinh-thong-minh-danh-cho-cac-co-so-giao-duc' }
-        ];
-        Promise.allSettled(
-          aiTargets.map(t => fetchJsonWithTimeout(`/api/posts/${encodeURIComponent(t.slug)}`, {}, 6000))
-        ).then(aiResults => {
-          if (!isMounted) return;
-          const aiMap = {};
-          aiTargets.forEach((t, i) => {
-            const res = aiResults[i];
-            if (res.status === 'fulfilled' && res.value?.success && res.value?.data) {
-              aiMap[t.key] = res.value.data;
-            }
-          });
-          if (Object.keys(aiMap).length > 0) {
-            setAiTopicPosts(prev => {
-              const merged = { ...prev, ...aiMap };
-              try {
-                localStorage.setItem('dnvn_cached_ai_topic_posts', JSON.stringify(merged));
-              } catch (e) {}
-              return merged;
-            });
-          }
-        }).catch(() => {});
       } catch (err) {
-        console.warn('Lỗi tải dữ liệu động trang chủ:', err);
+        console.warn('Lỗi nạp dữ liệu trang chủ kienan.today:', err);
       }
     };
     fetchHomeData();
     return () => { isMounted = false; };
   }, []);
 
-  // Xử lý Tìm kiếm
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      if (searchScope === 'members') {
-        navigate(`/members?search=${encodeURIComponent(searchQuery.trim())}`);
-      } else if (searchScope === 'events') {
-        navigate(`/events?search=${encodeURIComponent(searchQuery.trim())}`);
-      } else {
-        navigate(`/posts?search=${encodeURIComponent(searchQuery.trim())}`);
-      }
+      navigate(`/posts?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
-  // Cuộn mượt xuống Form Tư vấn & Tự động gán lĩnh vực quan tâm
-  const scrollToConsult = (serviceName = '') => {
-    if (serviceName) {
-      setFormData(prev => ({ ...prev, serviceNeed: serviceName }));
-    }
-    const el = document.getElementById('tu-van');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  // Gửi Form Tư vấn chuẩn endpoint /api/leads
   const handleConsultSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.fullName || !formData.phone || !formData.companyName) {
-      alert(currentLang === 'en' ? 'Please fill in Name, Phone, and Company (*)' : 'Vui lòng điền Họ tên, Số điện thoại và Tên tổ chức/doanh nghiệp (*)');
+    if (!formData.fullName.trim() || !formData.phone.trim() || !formData.companyName.trim()) {
+      alert(currentLang === 'en' ? 'Please fill in Name, Company, and Phone (*)' : 'Vui lòng điền Họ tên, Đơn vị và Số điện thoại (*)');
       return;
     }
     setFormLoading(true);
@@ -300,2552 +170,900 @@ export const Home = () => {
           fullName: formData.fullName,
           phone: formData.phone,
           email: formData.email,
-          city: formData.city,
+          city: 'Hải Phòng',
           companyName: formData.companyName,
           memberType: formData.serviceNeed,
-          notes: `Lĩnh vực quan tâm: ${formData.serviceNeed}. Ghi chú: ${formData.notes || 'Không có'}`
+          notes: `[kienan.today] Nhu cầu: ${formData.serviceNeed}. Nội dung: ${formData.notes || 'Không có'}`
         })
       });
       if (res.ok) {
         setFormSubmitted(true);
       } else {
-        const errData = await res.json();
-        alert(errData.error || 'Có lỗi xảy ra khi gửi thông tin');
+        const json = await res.json();
+        alert(json.error || 'Có lỗi xảy ra khi gửi thông tin');
       }
     } catch (err) {
-      console.error('Submit error:', err);
-      alert('Không thể kết nối đến máy chủ, vui lòng thử lại.');
+      alert('Không thể kết nối máy chủ. Quý khách vui lòng gọi Hotline 0986 354 152 để được hỗ trợ trực tiếp.');
     } finally {
       setFormLoading(false);
     }
   };
 
-  // Xử lý mở Modal đăng ký vé (tự động điền nếu đã đăng nhập)
-  const handleOpenRegisterModal = (evt) => {
-    if (!evt) return;
-    setRegisterModalEvent(evt);
-    setRegSuccessData(null);
-    setPaidFlowStep('transfer');
-    setProofFile(null);
-    setProofPreview('');
-    setAccountNotice('');
-    setAccountWarning('');
-    if (isActuallyLoggedIn && effectiveUser) {
-      setRegForm({
-        fullName: effectiveUser.contact_name || effectiveUser.name || '',
-        phone: effectiveUser.phone || '',
-        email: effectiveUser.email || '',
-        company: effectiveUser.name || '',
-        quantity: 1,
-        createAccount: false,
-        accountLogin: '',
-        accountPassword: '',
-        accountConfirmPassword: ''
-      });
-    } else {
-      setRegForm({
-        fullName: '',
-        phone: '',
-        email: '',
-        company: '',
-        quantity: 1,
-        createAccount: false,
-        accountLogin: '',
-        accountPassword: '',
-        accountConfirmPassword: ''
-      });
-    }
-  };
+  const handleSendAiQuestion = async (questionText) => {
+    const q = (questionText || chatInput).trim();
+    if (!q || chatLoading) return;
 
-  // Đóng modal và reset trạng thái tạm
-  const handleCloseModal = () => {
-    setRegisterModalEvent(null);
-    setRegSuccessData(null);
-    setPaidFlowStep('transfer');
-    setProofFile(null);
-    setProofPreview('');
-    setAccountNotice('');
-    setAccountWarning('');
-  };
-
-  // Kiểm tra tài khoản đã tồn tại hay chưa khi chưa đăng nhập
-  const verifyAccountNotExists = async (phoneToCheck, emailToCheck, loginToCheck) => {
-    if (isActuallyLoggedIn) {
-      setAccountWarning('');
-      return true;
-    }
-    const p = (phoneToCheck !== undefined ? phoneToCheck : regForm.phone).trim();
-    const e = (emailToCheck !== undefined ? emailToCheck : regForm.email).trim();
-    const u = (loginToCheck !== undefined ? loginToCheck : regForm.accountLogin).trim();
-
-    if (!p && !e && !u) {
-      setAccountWarning('');
-      return true;
-    }
+    setChatMessages(prev => [...prev, { sender: 'user', text: q }]);
+    setChatInput('');
+    setChatLoading(true);
 
     try {
-      setCheckingAccount(true);
-      const res = await fetch('/api/events/check-account', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: p, email: e, username: u })
+        body: JSON.stringify({ message: q })
       });
-      const data = await res.json();
-      if (data.exists) {
-        setAccountWarning(data.message || 'Email hoặc Số điện thoại này đã được đăng ký tài khoản trong hệ thống. Vui lòng kiểm tra lại hoặc đăng nhập trước khi mua vé.');
-        return false;
+      if (res.ok) {
+        const data = await res.json();
+        const replyText = data.reply || data.response || data.message || 'Cảm ơn bạn đã đặt câu hỏi. Đội ngũ kienan.today sẽ phản hồi sớm nhất!';
+        setChatMessages(prev => [...prev, { sender: 'bot', text: replyText }]);
       } else {
-        setAccountWarning('');
-        return true;
+        setChatMessages(prev => [...prev, { sender: 'bot', text: 'Hệ thống AI đang được bảo trì hoặc cập nhật dữ liệu. Quý vị có thể tra cứu nhanh qua menu Khám phá Kiến An hoặc gọi hotline 0986 354 152.' }]);
       }
-    } catch {
-      return true;
-    } finally {
-      setCheckingAccount(false);
-    }
-  };
-
-  // Sao chép số tài khoản / nội dung chuyển khoản
-  const copyToClipboard = (text, type) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text);
-    if (type === 'bank') {
-      setCopiedBank(true);
-      setTimeout(() => setCopiedBank(false), 2000);
-    } else {
-      setCopiedNote(true);
-      setTimeout(() => setCopiedNote(false), 2000);
-    }
-  };
-
-  // Xử lý chọn ảnh chứng từ chuyển khoản
-  const handleProofChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      alert('Dung lượng ảnh vượt quá 20MB. Vui lòng chọn ảnh nhỏ hơn.');
-      return;
-    }
-    setProofFile(file);
-    setProofPreview(URL.createObjectURL(file));
-  };
-
-  // Gửi ảnh chụp giao dịch chuyển khoản cho vé có phí
-  const handleSubmitPaymentProof = async () => {
-    if (!proofFile || !regSuccessData?.id) {
-      alert('Vui lòng tải lên ảnh chụp màn hình giao dịch chuyển khoản thành công.');
-      return;
-    }
-    setUploadingProof(true);
-    try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        try {
-          const base64Data = reader.result.split(',')[1];
-          const res = await fetch(`/api/events/registrations/${regSuccessData.id}/payment-proof`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileName: proofFile.name,
-              base64Data,
-              ticket_code: regSuccessData.ticket_code
-            })
-          });
-          const data = await res.json();
-          if (res.ok && data.success) {
-            setPaidFlowStep('pending_approval');
-          } else {
-            alert(data.error || 'Không thể gửi ảnh chuyển khoản.');
-          }
-        } catch (err) {
-          alert('Lỗi gửi ảnh chuyển khoản: ' + err.message);
-        } finally {
-          setUploadingProof(false);
-        }
-      };
-      reader.readAsDataURL(proofFile);
     } catch (err) {
-      setUploadingProof(false);
-      alert('Lỗi đọc tệp ảnh: ' + err.message);
+      setChatMessages(prev => [...prev, { sender: 'bot', text: 'Không thể kết nối dịch vụ AI. Xin vui lòng thử lại sau.' }]);
+    } finally {
+      setChatLoading(false);
+      setTimeout(() => {
+        if (chatBottomRef.current) chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     }
   };
 
-  // Đăng ký vé sự kiện (hỗ trợ cả đã đăng nhập và tạo tài khoản mới)
   const handleQuickRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!registerModalEvent) return;
-
-    if (!regForm.fullName.trim() || !regForm.phone.trim()) {
-      alert('Vui lòng điền Họ và tên và Số điện thoại liên hệ.');
+    if (!regForm.fullName || !regForm.phone) {
+      alert('Vui lòng nhập Họ tên và Số điện thoại');
       return;
     }
-
-    // Nếu chưa đăng nhập: Kiểm tra xem SĐT hoặc Email đã có tài khoản chưa
-    if (!isActuallyLoggedIn) {
-      const isAvailable = await verifyAccountNotExists(regForm.phone, regForm.email, regForm.createAccount ? regForm.accountLogin : '');
-      if (!isAvailable) {
-        alert(accountWarning || 'Email hoặc Số điện thoại này đã được đăng ký tài khoản trong hệ thống. Vui lòng kiểm tra lại thông tin, đăng nhập tài khoản trước khi mua vé, hoặc sử dụng Email/Số điện thoại khác hợp lệ.');
-        return;
-      }
-    }
-
-    if (!isActuallyLoggedIn && regForm.createAccount) {
-      const login = regForm.accountLogin.trim() || regForm.phone.trim() || regForm.email.trim();
-      if (!login) {
-        alert('Vui lòng nhập Tài khoản (Email hoặc Số điện thoại) để tạo tài khoản theo dõi vé.');
-        return;
-      }
-      if (!regForm.accountPassword) {
-        alert('Vui lòng nhập mật khẩu cho tài khoản theo dõi vé.');
-        return;
-      }
-      if (regForm.accountPassword.length < 6) {
-        alert('Mật khẩu phải có ít nhất 6 ký tự.');
-        return;
-      }
-      if (regForm.accountPassword !== regForm.accountConfirmPassword) {
-        alert('Mật khẩu xác nhận không khớp. Vui lòng nhập lại chính xác.');
-        return;
-      }
-    }
-
     setSubmittingReg(true);
     try {
-      const headers = { 'Content-Type': 'application/json' };
-      const authToken = memberToken || token;
-      if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
-
       const res = await fetch(`/api/events/${registerModalEvent.id}/register`, {
         method: 'POST',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          full_name: regForm.fullName.trim(),
-          phone: regForm.phone.trim(),
-          email: regForm.email.trim() || null,
-          company: regForm.company.trim() || null,
-          quantity: parseInt(regForm.quantity, 10) || 1,
-          member_id: effectiveUser?.id || user?.id || null,
-          create_account: isActuallyLoggedIn ? false : regForm.createAccount,
-          account_login: regForm.accountLogin.trim() || regForm.phone.trim() || regForm.email.trim(),
-          account_password: regForm.accountPassword,
-          account_confirm_password: regForm.accountConfirmPassword
+          fullName: regForm.fullName,
+          phone: regForm.phone,
+          email: regForm.email,
+          quantity: regForm.quantity || 1
         })
       });
-
       const data = await res.json();
       if (res.ok && data.success) {
-        setRegSuccessData(data.registration);
-        setPaidFlowStep('transfer');
-        setProofFile(null);
-        setProofPreview('');
-        if (data.account_message) {
-          setAccountNotice(data.account_message);
-        }
+        setRegSuccessData(data.data);
       } else {
-        alert(data.error || 'Đăng ký vé chưa thành công');
+        alert(data.error || 'Có lỗi xảy ra khi đăng ký vé.');
       }
     } catch (err) {
-      console.error('Register ticket error:', err);
-      alert('Có lỗi kết nối khi đăng ký vé: ' + err.message);
+      alert('Không thể kết nối máy chủ, vui lòng thử lại.');
     } finally {
       setSubmittingReg(false);
     }
   };
 
-  // Danh mục dự án đầu tư mẫu chọn lọc
-  const investmentProjects = [
-    {
-      id: 'inv-1',
-      title: 'Tổ hợp Nhà máy Chế biến sâu Cà phê & Nông sản xuất khẩu Buôn Ma Thuột',
-      sector: 'Chế biến Nông sản',
-      sectorKey: 'agro',
-      location: 'Khu công nghiệp Hòa Phú, TP. Buôn Ma Thuột',
-      scale: '250 tỷ VNĐ (Công suất 15.000 tấn/năm)',
-      status: 'Đang kêu gọi hợp tác & đầu tư',
-      desc: 'Dự án đầu tư dây chuyền sấy lạnh, chiết xuất cà phê hòa tan cao cấp và hệ thống kiểm định đạt chuẩn châu Âu.'
-    },
-    {
-      id: 'inv-2',
-      title: 'Khu Nông nghiệp Ứng dụng Công nghệ cao Cư M’gar',
-      sector: 'Nông nghiệp CNC',
-      sectorKey: 'hitech',
-      location: 'Huyện Cư M’gar, Tỉnh Đắk Lắk',
-      scale: '180 tỷ VNĐ (Quy mô 120 ha)',
-      status: 'Quỹ đất sạch sẵn sàng',
-      desc: 'Canh tác sầu riêng, mắc ca và hồ tiêu hữu cơ kết hợp hệ thống IoT giám sát thổ nhưỡng và truy xuất nguồn gốc số.'
-    },
-    {
-      id: 'inv-3',
-      title: 'Trung tâm Dịch vụ Logistics & Kho lạnh Vận tải hàng hóa Tây Nguyên',
-      sector: 'Logistics',
-      sectorKey: 'logistics',
-      location: 'Điểm nối cao tốc Buôn Ma Thuột — Khánh Hòa',
-      scale: '320 tỷ VNĐ (Diện tích 25 ha)',
-      status: 'Quy hoạch phân khu đã phê duyệt',
-      desc: 'Đầu tư cụm kho ngoại quan, kho lạnh bảo quản nông sản tươi và trung tâm logistics kết nối Tây Nguyên với cảng biển Nam Trung Bộ.'
-    },
-    {
-      id: 'inv-4',
-      title: 'Khu Nghỉ dưỡng Sinh thái & Bảo tồn Văn hóa Cồng chiêng Hồ Lắk',
-      sector: 'Du lịch Sinh thái',
-      sectorKey: 'tourism',
-      location: 'Huyện Lắk, Tỉnh Đắk Lắk',
-      scale: '150 tỷ VNĐ (Resort 4 sao, 80 phòng bungalow)',
-      status: 'Kêu gọi nhà đầu tư chiến lược',
-      desc: 'Tổ hợp nghỉ dưỡng sinh thái ven hồ kết hợp trải nghiệm làng nghề truyền thống và biểu diễn văn hóa phi vật thể của người M’Nông.'
-    }
-  ];
-
-  const filteredProjects = selectedSector === 'all' 
-    ? investmentProjects 
-    : investmentProjects.filter(p => p.sectorKey === selectedSector);
-
-  // 5 Câu hỏi thường gặp
-  const faqs = [
-    {
-      q: currentLang === 'en' ? 'What is DakLak.today and who does it serve?' : 'DakLak.today là gì và phục vụ những đối tượng nào?',
-      a: currentLang === 'en' 
-        ? 'DakLak.today is the digital gateway, open data hub, and investment promotion platform of Dak Lak Province. We connect travelers, local enterprises, global investors, and diaspora communities across 4 key pillars: Media, Data, Platform, and Artificial Intelligence.'
-        : 'DakLak.today là cổng thông tin số, dữ liệu mở và nền tảng xúc tiến đầu tư toàn diện của tỉnh Đắk Lắk. Nền tảng phục vụ du khách khám phá, doanh nghiệp địa phương quảng bá sản phẩm, nhà đầu tư trong và ngoài nước tiếp cận dự án, cùng cộng đồng người Đắk Lắk xa quê theo dõi chuyển động quê hương.'
-    },
-    {
-      q: currentLang === 'en' ? 'How does AI Assistant & AI Matching work on DakLak.today?' : 'Trợ lý AI và tính năng AI Matching hỗ trợ nhà đầu tư như thế nào?',
-      a: currentLang === 'en'
-        ? 'Our Gemini Flash-powered AI assistant analyzes investment profiles, agricultural raw material maps, and policy data to automatically match prospective investors with suitable projects, industrial zones, and verified local partners.'
-        : 'Trợ lý AI tích hợp công nghệ Gemini Flash kết nối trực tiếp với cơ sở dữ liệu doanh nghiệp, quy hoạch tỉnh và chuỗi giá trị nông sản. Nhà đầu tư chỉ cần nhập nhu cầu (ví dụ: cần tìm quỹ đất 50 ha làm nông nghiệp CNC), AI sẽ tự động sàng lọc dự án phù hợp và đề xuất đối tác xác thực.'
-    },
-    {
-      q: currentLang === 'en' ? 'What benefits do member businesses receive?' : 'Doanh nghiệp tham gia nền tảng DakLak.today được hưởng những quyền lợi gì?',
-      a: currentLang === 'en'
-        ? 'Member enterprises receive a verified Digital Showroom, publish articles & trade opportunities, receive investor inquiries, and enjoy automatic approval for the Silver package upon registration.'
-        : 'Doanh nghiệp được cấp trang Hồ sơ năng lực (Showroom số) có dấu xác thực, đăng tải sản phẩm OCOP, tìm kiếm đối tác và kêu gọi vốn. Khi đăng ký gói Silver, hệ thống tự động phê duyệt ngay lập tức để doanh nghiệp bắt đầu sử dụng.'
-    },
-    {
-      q: currentLang === 'en' ? 'How can I register for events and get QR tickets?' : 'Tôi có thể đăng ký tham gia sự kiện và nhận vé QR như thế nào?',
-      a: currentLang === 'en'
-        ? 'Simply click "Register Ticket" on any featured event. Fill in your name and phone number to receive a unique QR check-in code directly on screen or by email, with zero waiting time.'
-        : 'Người dùng chỉ cần nhấn "Đăng ký vé" tại khối sự kiện nổi bật, điền thông tin người tham dự. Hệ thống sẽ tự động cấp mã QR soát vé độc nhất để check-in thời gian thực tại hội trường.'
-    },
-    {
-      q: currentLang === 'en' ? 'Does DakLak.today support mobile app installation (PWA)?' : 'DakLak.today có hỗ trợ cài đặt dạng ứng dụng trên điện thoại (PWA) không?',
-      a: currentLang === 'en'
-        ? 'Yes! DakLak.today is fully equipped with Progressive Web App (PWA) technology. You can click "Install App" on the navigation bar to add it directly to your phone or computer home screen without App Store downloads.'
-        : 'Có. DakLak.today được tối ưu chuẩn PWA hiện đại. Bạn chỉ cần nhấn nút "Cài App" trên thanh điều hướng hoặc popup trên điện thoại để đưa biểu tượng DakLak.today ra màn hình chính, sử dụng mượt mà không cần qua App Store.'
-    }
-  ];
+  // Lọc bài viết
+  const filteredPosts = selectedPostFilter === 'all'
+    ? latestPosts
+    : latestPosts.filter(p => p.category?.includes(selectedPostFilter) || p.sub_category?.includes(selectedPostFilter));
 
   return (
-    <div className="daklak-home">
+    <div className="kienan-home">
       <SEOHead 
-        title={`${brandConfig.brandName} — ${brandConfig.slogan}`}
-        description={brandConfig.description}
+        title="kienan.today | Khám phá Kiến An, kết nối cộng đồng và doanh nghiệp"
+        description="Khám phá Kiến An, Hải Phòng; kết nối doanh nghiệp, cộng đồng, sự kiện và giải pháp AI cùng kienan.today."
       />
+      <SpotlightBanner />
       <Navbar />
 
       <main id="main-content">
-        {/* ========================================================
-            SECTION 1: HERO BANNER ("Hôm nay ở Đắk Lắk có gì?")
-            ======================================================== */}
-        <section className="daklak-hero" id="home">
-          <div className="daklak-hero-content">
-            <div className="daklak-hero-badge">
-              <i className="ti ti-sparkles" />
-              <span>{currentLang === 'en' ? 'Central Highlands Digital Gateway' : 'Cổng Khám Phá & Xúc Tiến Đầu Tư'}</span>
-            </div>
-
-            <h1 className="daklak-hero-title">
-              DAKLAK.TODAY <br />
-              <span>{currentLang === 'en' ? 'From Bazan Earth to Global Horizons' : 'Từ Đất Bazan Đến Cơ Hội Toàn Cầu'}</span>
-            </h1>
-
-            <p className="daklak-hero-subtitle">
-              {currentLang === 'en'
-                ? 'Discover the coffee capital and the majestic Central Highlands; connect with verified enterprises, high-value agricultural projects, and investment opportunities on an AI-powered platform.'
-                : 'Khám phá thủ phủ cà phê và đại ngàn Tây Nguyên; kết nối doanh nghiệp, chuỗi giá trị nông sản và cơ hội hợp tác đầu tư trên nền tảng số tích hợp Trí tuệ Nhân tạo.'}
-            </p>
-
-            {/* Trending Tags */}
-            <div className="daklak-hero-tags">
-              <span className="daklak-hero-tag" onClick={() => navigate(`/posts?category=${encodeURIComponent('Cà phê Đắk Lắk')}`)}>☕ #ThuPhuCaPhe</span>
-              <span className="daklak-hero-tag" onClick={() => navigate(`/posts?category=${encodeURIComponent('Khám phá Đắk Lắk')}`)}>🌄 #BazanDo</span>
-              <span className="daklak-hero-tag" onClick={() => navigate(`/posts?category=${encodeURIComponent('Du lịch & Trải nghiệm')}`)}>🥁 #VanHoaCongChieng</span>
-              <span className="daklak-hero-tag" onClick={() => navigate(`/posts?category=${encodeURIComponent('Đầu tư & Dự án')}`)}>💰 #KetNoiDauTu</span>
-              <span className="daklak-hero-tag" onClick={() => navigate(`/posts?category=${encodeURIComponent('Doanh nghiệp & Sản phẩm')}`)}>🚀 #DoanhNghiepDakLak</span>
-              <span className="daklak-hero-tag" onClick={() => navigate('/ai-chat')}>🤖 #AIMatching</span>
-            </div>
-
-            {/* Search Box with Scope Tabs */}
-            <form className="daklak-hero-search-box" onSubmit={handleSearchSubmit}>
-              <i className="ti ti-search" style={{ color: 'var(--bazan-brown)', marginLeft: '14px', fontSize: '1.2rem' }} />
-              <input 
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={currentLang === 'en' ? 'Search coffee, agricultural projects, enterprises, destinations...' : 'Tìm kiếm cà phê, dự án nông nghiệp, doanh nghiệp, điểm đến...'}
-              />
-              <button type="submit">
-                <span>{currentLang === 'en' ? 'Search' : 'Tìm kiếm'}</span>
-                <i className="ti ti-arrow-right" />
-              </button>
-            </form>
-
-            {/* Action Buttons */}
-            <div className="daklak-hero-actions">
-              <a href="#kham-pha" className="btn-daklak-primary">
-                <i className="ti ti-compass" />
-                <span>{currentLang === 'en' ? 'Explore Dak Lak' : 'Khám phá Đắk Lắk'}</span>
-              </a>
-              <button onClick={() => scrollToConsult()} className="btn-daklak-gold">
-                <i className="ti ti-briefcase" />
-                <span>{currentLang === 'en' ? 'Connect Investment' : 'Kết nối Đầu tư'}</span>
-              </button>
-              <Link to="/ai-chat" className="btn-daklak-outline">
-                <i className="ti ti-robot" />
-                <span>{currentLang === 'en' ? 'Ask AI Assistant' : 'Hỏi Trợ lý AI'}</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 2: 4 LỐI VÀO THEO NHU CẦU (QUICK ACCESS HUB)
-            ======================================================== */}
-        <section className="daklak-section" style={{ paddingTop: '0', paddingBottom: '50px' }}>
-          <div className="daklak-container">
-            <div className="quick-access-grid">
-              {/* Card 1 */}
-              <div className="quick-access-card" onClick={() => navigate('/posts?category=Khám%20phá%20Đắk%20Lắk')}>
-                <div>
-                  <div className="quick-access-icon">🧭</div>
-                  <h3 className="quick-access-title">{currentLang === 'en' ? 'I Want to Explore' : 'Tôi muốn Khám phá'}</h3>
-                  <p className="quick-access-desc">
-                    {currentLang === 'en' ? 'Discover coffee culture, pristine waterfalls, Lake Lak, and Central Highlands gong heritage.' : 'Khám phá văn hóa cà phê, thác Dray Nur, hồ Lắk, vườn quốc gia Yok Đôn và di sản cồng chiêng.'}
-                  </p>
-                </div>
-                <span className="quick-access-link">{currentLang === 'en' ? 'Start Journey →' : 'Bắt đầu trải nghiệm →'}</span>
+        {/* ==============================================================================
+            1. HERO SECTION (Chương 4 Landing Page Docx)
+            ============================================================================== */}
+        <section className="ka-hero" id="hero">
+          <div className="ka-hero-bg-overlay"></div>
+          <div className="ka-hero-particles"></div>
+          
+          <div className="ka-container ka-hero-container">
+            <div>
+              <div className="ka-hero-eyebrow">
+                <i className="ti ti-map-pin"></i>
+                <span>KIENAN.TODAY · KIẾN AN, HẢI PHÒNG</span>
               </div>
-
-              {/* Card 2 */}
-              <div className="quick-access-card" onClick={() => navigate('/members')}>
-                <div>
-                  <div className="quick-access-icon">🏢</div>
-                  <h3 className="quick-access-title">{currentLang === 'en' ? 'I am a Business' : 'Tôi là Doanh nghiệp'}</h3>
-                  <p className="quick-access-desc">
-                    {currentLang === 'en' ? 'Join digital showroom, showcase OCOP specialty products, and connect with global trade partners.' : 'Mở showroom số, quảng bá nông sản OCOP, tìm kiếm đối tác cung ứng và mở rộng kênh phân phối.'}
-                  </p>
-                </div>
-                <span className="quick-access-link" style={{ color: 'var(--forest-green)' }}>{currentLang === 'en' ? 'Join Network →' : 'Mở hồ sơ số →'}</span>
-              </div>
-
-              {/* Card 3 */}
-              <div className="quick-access-card" onClick={() => scrollToConsult('Dự án Đầu tư Trọng điểm')}>
-                <div>
-                  <div className="quick-access-icon">💰</div>
-                  <h3 className="quick-access-title">{currentLang === 'en' ? 'I Seek Investment' : 'Tôi tìm Cơ hội Đầu tư'}</h3>
-                  <p className="quick-access-desc">
-                    {currentLang === 'en' ? 'Access verified key projects, industrial parks, raw material zones, and investment incentive policies.' : 'Truy cập danh mục dự án trọng điểm, quỹ đất KCN, vùng nguyên liệu và chính sách ưu đãi tỉnh.'}
-                  </p>
-                </div>
-                <span className="quick-access-link" style={{ color: 'var(--gong-gold)' }}>{currentLang === 'en' ? 'View Projects →' : 'Xem danh mục dự án →'}</span>
-              </div>
-
-              {/* Card 4 */}
-              <div className="quick-access-card" onClick={() => navigate('/ai-chat')}>
-                <div>
-                  <div className="quick-access-icon">🤖</div>
-                  <h3 className="quick-access-title">{currentLang === 'en' ? 'I Want to Connect & Ask AI' : 'Tôi muốn Kết nối & Hỏi AI'}</h3>
-                  <p className="quick-access-desc">
-                    {currentLang === 'en' ? 'Engage with 24/7 AI Assistant to match business partners, calculate project viability, and receive advice.' : 'Tương tác Trợ lý AI thông minh, giải đáp quy hoạch, phân tích hồ sơ và ghép nối đối tác tức thời.'}
-                  </p>
-                </div>
-                <span className="quick-access-link" style={{ color: 'var(--bazan-brown)' }}>{currentLang === 'en' ? 'Chat with AI →' : 'Trò chuyện ngay →'}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 3: SỨ MỆNH & KHÔNG GIAN SỐ CHUNG ĐẮK LẮK
-            ======================================================== */}
-        <section className="daklak-section" id="kham-pha">
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Strategic Mission' : 'Sứ Mệnh Số Hóa'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'A Unified Digital Space for Dak Lak' : 'Một Không Gian Số Chung Dành Cho Đắk Lắk'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'DakLak.today is not merely a news portal, but a collaborative digital ecosystem designed to aggregate, standardize, and amplify the enduring values of Dak Lak.'
-                  : 'DakLak.today không chỉ là một website tin tức, mà là một không gian số mở tập hợp, chuẩn hóa và lan tỏa những giá trị bền vững của Đắk Lắk đến bạn bè trong nước và quốc tế.'}
+              <h1 className="ka-hero-title">
+                Kiến An đổi mới — <br />
+                <span className="highlight-teal">Kiến An vươn mình</span>
+              </h1>
+              <p className="ka-hero-desc">
+                Khám phá cảnh quan, văn hóa và nhịp sống Kiến An. Kết nối doanh nghiệp, cộng đồng và những cơ hội phát triển trên cùng một nền tảng số.
               </p>
-            </div>
-
-            <div className="values-grid">
-              <div className="value-card">
-                <div className="value-card-icon"><i className="ti ti-network" /></div>
-                <h3>{currentLang === 'en' ? 'Digital Connectivity' : 'Kết Nối Số'}</h3>
-                <p>{currentLang === 'en' ? 'Bridging individuals, enterprises, investors, and local authorities within one unified interactive ecosystem.' : 'Thu hẹp khoảng cách giữa người dân, doanh nghiệp, nhà đầu tư và cơ quan ban ngành trên một giao diện thống nhất.'}</p>
+              
+              <div className="ka-hero-actions">
+                <a href="#kham-pha" className="ka-btn-primary">
+                  <i className="ti ti-compass"></i>
+                  <span>Khám phá Kiến An</span>
+                </a>
+                <a href="#doanh-nghiep" className="ka-btn-outline">
+                  <i className="ti ti-building-store"></i>
+                  <span>Kết nối doanh nghiệp</span>
+                </a>
               </div>
 
-              <div className="value-card">
-                <div className="value-card-icon"><i className="ti ti-database" /></div>
-                <h3>{currentLang === 'en' ? 'Reliable Data' : 'Dữ Liệu Tin Cậy'}</h3>
-                <p>{currentLang === 'en' ? 'Standardized, verified information on planning, businesses, agricultural raw material areas, and economic data.' : 'Chuẩn hóa thông tin doanh nghiệp, chỉ số kinh tế, vùng trồng nông sản và quy hoạch dự án từ các nguồn chính thống.'}</p>
+              {/* 3 Cụm thông tin nhỏ */}
+              <div className="ka-hero-triad">
+                <span><i className="ti ti-sparkles" style={{ color: '#F4B544' }}></i> Bản sắc địa phương</span>
+                <span className="dot">·</span>
+                <span><i className="ti ti-users" style={{ color: '#5EEAD4' }}></i> Kết nối cộng đồng</span>
+                <span className="dot">·</span>
+                <span><i className="ti ti-cpu" style={{ color: '#FCD34D' }}></i> Đồng hành cùng AI</span>
               </div>
 
-              <div className="value-card">
-                <div className="value-card-icon"><i className="ti ti-cpu" /></div>
-                <h3>{currentLang === 'en' ? 'Artificial Intelligence' : 'Trí Tuệ Nhân Tạo'}</h3>
-                <p>{currentLang === 'en' ? 'Harnessing generative AI to personalize search, recommend itineraries, and intelligently match investment needs.' : 'Ứng dụng AI thông minh hỗ trợ tìm kiếm ngữ nghĩa, gợi ý hành trình trải nghiệm và ghép nối nhu cầu đối tác chuẩn xác.'}</p>
-              </div>
-
-              <div className="value-card">
-                <div className="value-card-icon"><i className="ti ti-leaf" /></div>
-                <h3>{currentLang === 'en' ? 'Cultural Heritage' : 'Bản Sắc Văn Hóa'}</h3>
-                <p>{currentLang === 'en' ? 'Preserving and elevating the UNESCO Gong Culture, coffee pride, and the untamed spirit of the Central Highlands.' : 'Tôn vinh không gian văn hóa cồng chiêng Tây Nguyên, tự hào hạt cà phê Buôn Ma Thuột và vẻ đẹp đại ngàn hùng vĩ.'}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 3.5: LÀM CHỦ AI - BỨT PHÁ TƯƠNG LAI (SPECIAL AI TOPIC)
-            ======================================================== */}
-        <section className="daklak-section daklak-ai-showcase-section" id="lam-chu-ai">
-          <div className="daklak-container">
-            {/* Header Chuyên đề */}
-            <div className="daklak-ai-section-header">
-              <div className="daklak-ai-badge-wrapper">
-                <span className="daklak-ai-special-badge">
-                  <i className="ti ti-sparkles" /> {currentLang === 'en' ? 'SPECIAL TOPIC • MASTERING AI FOR THE FUTURE' : '« CHUYÊN ĐỀ ĐẶC BIỆT • LÀM CHỦ AI BỨT PHÁ TƯƠNG LAI »'}
-                </span>
-              </div>
-              <h2 className="daklak-ai-section-title">
-                {currentLang === 'en' ? 'Mastering AI – ' : 'Làm Chủ AI – '}
-                <span className="daklak-ai-title-gradient">
-                  {currentLang === 'en' ? 'Unlocking the Future' : 'Bứt Phá Tương Lai'}
-                </span>
-              </h2>
-              <p className="daklak-ai-section-desc">
-                {currentLang === 'en'
-                  ? 'Knowledge space, digital transformation solutions, and AI technology built on 3 core pillars: Ward AI, Orion Ecosystem, and Edunow.today Digital Training.'
-                  : 'Không gian tri thức, giải pháp chuyển đổi số và công nghệ trí tuệ nhân tạo với 3 trụ cột: AI phường xã, Hệ sinh thái Orion và Đào tạo số Edunow.today.'}
-              </p>
-            </div>
-
-            {/* 3 AI Cards Grid */}
-            {(() => {
-              const wardAiPost = aiTopicPosts?.wardAi || latestPosts.find(p => p.slug === 'tro-ly-ai-phuong-xa');
-              const orionPost = aiTopicPosts?.orion || latestPosts.find(p => p.slug && p.slug.includes('orion-chat-loc'));
-              const edunowPost = aiTopicPosts?.edunow || latestPosts.find(p => p.slug && p.slug.includes('edunowai'));
-
-              const wardAiImg = wardAiPost?.image_url || wardAiPost?.cover_image || wardAiPost?.thumbnail;
-              const orionImg = orionPost?.image_url || orionPost?.cover_image || orionPost?.thumbnail;
-              const edunowImg = edunowPost?.image_url || edunowPost?.cover_image || edunowPost?.thumbnail;
-
-              return (
-                <div className="daklak-ai-cards-grid">
-                  {/* Card 1: AI phường xã */}
-                  <div className="daklak-ai-card">
-                    <div className="daklak-ai-card-img-wrap">
-                      <span className="daklak-ai-card-pill daklak-ai-pill-cyan">
-                        <i className="ti ti-robot" /> {currentLang === 'en' ? 'Ward AI Assistant' : 'AI phường xã'}
-                      </span>
-                      <div className="daklak-ai-img-container">
-                        <img 
-                          src={wardAiImg || "/images/adt_logo.svg"} 
-                          alt={wardAiPost?.title || "Trợ lý AI phường xã"} 
-                          className={`daklak-ai-card-img ${!wardAiImg ? 'daklak-ai-card-fallback-logo' : ''}`}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "/images/adt_logo.svg";
-                            e.target.classList.add('daklak-ai-card-fallback-logo');
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="daklak-ai-card-body">
-                      <div className="daklak-ai-card-category daklak-ai-cat-cyan">
-                        <i className="ti ti-bolt" /> {currentLang === 'en' ? 'Foundation AI Technology' : 'Công nghệ AI cơ sở'}
-                      </div>
-                      <h3 className="daklak-ai-card-title">
-                        <Link to="/posts/tro-ly-ai-phuong-xa">
-                          {currentLang === 'en' ? 'Ward & Commune AI Assistant' : 'Trợ lý AI phường xã'}
-                        </Link>
-                      </h3>
-                      <p className="daklak-ai-card-summary">
-                        {currentLang === 'en'
-                          ? 'Local-level AI application supporting administration, citizen inquiries 24/7, and speeding up digital governance.'
-                          : 'Trợ lý AI phường xã phục vụ công tác điều hành, hỗ trợ cán bộ và người dân tra cứu thủ tục, tiếp nhận phản ánh và số hóa dịch vụ công cơ sở 24/7.'}
-                      </p>
-                      <div className="daklak-ai-card-footer">
-                        <span className="daklak-ai-card-author">Công ty cổ phần ADT Quốc Tế</span>
-                        <Link to="/posts/tro-ly-ai-phuong-xa" className="daklak-ai-card-link">
-                          {currentLang === 'en' ? 'Read More' : 'Đọc chi tiết'} <i className="ti ti-arrow-right" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 2: Orion */}
-                  <div className="daklak-ai-card">
-                    <div className="daklak-ai-card-img-wrap">
-                      <span className="daklak-ai-card-pill daklak-ai-pill-gold">
-                        <i className="ti ti-sparkles" /> Orion
-                      </span>
-                      <div className="daklak-ai-img-container">
-                        <img 
-                          src={orionImg || "/images/adt_logo.svg"} 
-                          alt={orionPost?.title || "Hệ sinh thái Orion"} 
-                          className={`daklak-ai-card-img ${!orionImg ? 'daklak-ai-card-fallback-logo' : ''}`}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "/images/adt_logo.svg";
-                            e.target.classList.add('daklak-ai-card-fallback-logo');
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="daklak-ai-card-body">
-                      <div className="daklak-ai-card-category daklak-ai-cat-gold">
-                        <i className="ti ti-cpu" /> {currentLang === 'en' ? 'Intelligent AI Platform' : 'Nền tảng AI thông minh'}
-                      </div>
-                      <h3 className="daklak-ai-card-title">
-                        <Link to="/posts/orion-chat-loc-tinh-hoa-cua-erp-multimodel-ai-va-nen-tang-xay-dung-ai-agent-de-tao-thanh-mot-he-dieu-hanh-quan-tri-thong-minh-danh-cho-doanh-nghiep">
-                          {currentLang === 'en'
-                            ? 'Orion: Distilling ERP, Multi-Model AI & AI Agent Platform into an Intelligent Operating System for Enterprises'
-                            : 'Orion chắt lọc tinh hoa của ERP, Multi-Model AI và nền tảng xây dựng AI Agent để tạo thành một hệ điều hành quản trị thông minh dành cho doanh nghiệp'}
-                        </Link>
-                      </h3>
-                      <p className="daklak-ai-card-summary">
-                        {currentLang === 'en'
-                          ? 'Unified intelligent enterprise operating system combining ERP and multi-model AI to automate business workflows.'
-                          : 'Orion chắt lọc tinh hoa của ERP, Multi-Model AI và nền tảng xây dựng AI Agent để tạo thành một hệ điều hành quản trị thông minh dành cho doanh nghiệp.'}
-                      </p>
-                      <div className="daklak-ai-card-footer">
-                        <span className="daklak-ai-card-author">Công ty cổ phần ADT Quốc Tế</span>
-                        <Link to="/posts/orion-chat-loc-tinh-hoa-cua-erp-multimodel-ai-va-nen-tang-xay-dung-ai-agent-de-tao-thanh-mot-he-dieu-hanh-quan-tri-thong-minh-danh-cho-doanh-nghiep" className="daklak-ai-card-link">
-                          {currentLang === 'en' ? 'Read More' : 'Đọc chi tiết'} <i className="ti ti-arrow-right" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card 3: Edunow.today */}
-                  <div className="daklak-ai-card">
-                    <div className="daklak-ai-card-img-wrap">
-                      <span className="daklak-ai-card-pill daklak-ai-pill-green">
-                        <i className="ti ti-school" /> Edunow.today
-                      </span>
-                      <div className="daklak-ai-img-container">
-                        <img 
-                          src={edunowImg || "/images/adt_logo.svg"} 
-                          alt={edunowPost?.title || "EDUNOW.AI"} 
-                          className={`daklak-ai-card-img ${!edunowImg ? 'daklak-ai-card-fallback-logo' : ''}`}
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "/images/adt_logo.svg";
-                            e.target.classList.add('daklak-ai-card-fallback-logo');
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="daklak-ai-card-body">
-                      <div className="daklak-ai-card-category daklak-ai-cat-green">
-                        <i className="ti ti-certificate" /> {currentLang === 'en' ? 'Training & Digital Skills' : 'Đào tạo & Kỹ năng số'}
-                      </div>
-                      <h3 className="daklak-ai-card-title">
-                        <Link to="/posts/edunowai-giai-phap-tro-ly-ai-tuyen-sinh-thong-minh-danh-cho-cac-co-so-giao-duc">
-                          {currentLang === 'en'
-                            ? 'EDUNOW.AI: Smart Admissions AI Assistant Solution for Educational Institutions'
-                            : 'EDUNOW.AI Giải pháp Trợ lý AI tuyển sinh thông minh dành cho các cơ sở giáo dục'}
-                        </Link>
-                      </h3>
-                      <p className="daklak-ai-card-summary">
-                        {currentLang === 'en'
-                          ? 'Smart admissions consulting AI assistant and comprehensive digital skills training platform.'
-                          : 'EDUNOW.AI Giải pháp Trợ lý AI tuyển sinh thông minh dành cho các cơ sở giáo dục, tư vấn tuyển sinh 24/7 và chuyển đổi số đào tạo.'}
-                      </p>
-                      <div className="daklak-ai-card-footer">
-                        <span className="daklak-ai-card-author">Công ty cổ phần ADT Quốc Tế</span>
-                        <Link to="/posts/edunowai-giai-phap-tro-ly-ai-tuyen-sinh-thong-minh-danh-cho-cac-co-so-giao-duc" className="daklak-ai-card-link">
-                          {currentLang === 'en' ? 'Read More' : 'Đọc chi tiết'} <i className="ti ti-arrow-right" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Bottom Actions */}
-            <div className="daklak-ai-actions">
-              <Link
-                to="/posts?category=Doanh%20nghi%E1%BB%87p%20%26%20S%E1%BA%A3n%20ph%E1%BA%A9m&sub_category=Showroom%20s%E1%BB%91"
-                className="btn-daklak-ai-category"
-              >
-                <i className="ti ti-layout-grid" />
-                <span>{currentLang === 'en' ? 'View all AI Category Articles' : 'Xem toàn bộ bài viết chuyên mục AI'}</span>
-              </Link>
-              <Link to="/ai-chat" className="btn-daklak-ai-chat">
-                <i className="ti ti-messages" />
-                <span>{currentLang === 'en' ? 'Chat with AI Assistant' : 'Trò chuyện cùng Trợ lý AI'}</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 4: 4 THẾ MẠNH HỘI TỤ ĐẮK LẮK
-            ======================================================== */}
-        <section className="daklak-section" style={{ backgroundColor: 'var(--cream-alt)' }}>
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Natural Advantages' : 'Thế Mạnh Nổi Bật'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Convergence of Coffee, Culture & the Great Highlands' : 'Đắk Lắk – Hội Tụ Cà Phê, Văn Hóa & Đại Ngàn Tây Nguyên'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Endowed with fertile red basalt soil and a unique climate, Dak Lak possesses immense advantages for comprehensive socio-economic development.'
-                  : 'Sở hữu dải đất đỏ bazan màu mỡ cùng khí hậu đặc trưng, Đắk Lắk hội tụ những tiềm năng vượt trội để bứt phá kinh tế trong kỷ nguyên mới.'}
-              </p>
-            </div>
-
-            <div className="strengths-grid">
-              {/* Strength 1 */}
-              <div className="strength-card">
-                <div className="strength-img-box">
-                  <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80" alt="Cà phê Đắk Lắk" />
-                  <span className="strength-tag">{currentLang === 'en' ? 'Strategic Commodity' : 'Trụ cột Kinh tế'}</span>
-                </div>
-                <div className="strength-body">
-                  <h3>{currentLang === 'en' ? 'Coffee & Specialty Agro-Products' : 'Cà Phê & Nông Sản Đặc Hữu'}</h3>
-                  <p>{currentLang === 'en' ? 'Over 213,000 hectares of coffee, producing 560,000+ tons annually. Alongside durian, macadamia, and black pepper reaching top global exports.' : 'Hơn 213.000 ha cà phê, sản lượng trên 560.000 tấn/năm. Cùng sầu riêng, mắc ca, hồ tiêu đạt chuẩn xuất khẩu chất lượng cao vào EU, Mỹ, Nhật.'}</p>
-                  <Link to={`/posts?category=${encodeURIComponent('Cà phê Đắk Lắk')}`} className="quick-access-link">{currentLang === 'en' ? 'Explore value chain →' : 'Khám phá chuỗi giá trị →'}</Link>
-                </div>
-              </div>
-
-              {/* Strength 2 */}
-              <div className="strength-card">
-                <div className="strength-img-box">
-                  <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80" alt="Văn hóa Du lịch" />
-                  <span className="strength-tag" style={{ background: 'rgba(31, 90, 58, 0.9)' }}>{currentLang === 'en' ? 'Living Heritage' : 'Di sản Sống'}</span>
-                </div>
-                <div className="strength-body">
-                  <h3>{currentLang === 'en' ? 'Ecotourism & Gong Culture' : 'Du Lịch Sinh Thái & Di Sản Cồng Chiêng'}</h3>
-                  <p>{currentLang === 'en' ? 'UNESCO Intangible Cultural Heritage of Humanity, majestic Dray Nur waterfalls, Yok Don National Park, and serene Lake Lak.' : 'Không gian văn hóa cồng chiêng được UNESCO vinh danh, hệ thống thác nước hùng vĩ, Vườn quốc gia Yok Đôn và vẻ đẹp thơ mộng của Hồ Lắk.'}</p>
-                  <Link to={`/posts?category=${encodeURIComponent('Du lịch & Trải nghiệm')}`} className="quick-access-link">{currentLang === 'en' ? 'Experience culture →' : 'Trải nghiệm văn hóa →'}</Link>
-                </div>
-              </div>
-
-              {/* Strength 3 */}
-              <div className="strength-card">
-                <div className="strength-img-box">
-                  <img src="https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80" alt="Năng lượng tái tạo" />
-                  <span className="strength-tag" style={{ background: 'rgba(213, 163, 63, 0.9)', color: '#26160E' }}>{currentLang === 'en' ? 'Clean Energy' : 'Năng Lượng Xanh'}</span>
-                </div>
-                <div className="strength-body">
-                  <h3>{currentLang === 'en' ? 'Renewable Energy & Infrastructure' : 'Năng Lượng Tái Tạo & Công Nghiệp'}</h3>
-                  <p>{currentLang === 'en' ? 'Centrally positioned wind & solar farm hubs; developing Buon Ma Thuot - Khanh Hoa highway opening swift coastal trade access.' : 'Trung tâm điện gió, điện mặt trời quy mô lớn; tuyến cao tốc Buôn Ma Thuột — Khánh Hòa mở toang cửa ngõ giao thương hướng biển.'}</p>
-                  <Link to={`/posts?category=${encodeURIComponent('Đầu tư & Dự án')}`} className="quick-access-link">{currentLang === 'en' ? 'View infrastructure →' : 'Xem hạ tầng KCN →'}</Link>
-                </div>
-              </div>
-
-              {/* Strength 4 */}
-              <div className="strength-card">
-                <div className="strength-img-box">
-                  <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80" alt="Không gian phát triển" />
-                  <span className="strength-tag" style={{ background: 'rgba(122, 62, 29, 0.9)' }}>{currentLang === 'en' ? 'Urban Hub' : 'Đô Thị Trung Tâm'}</span>
-                </div>
-                <div className="strength-body">
-                  <h3>{currentLang === 'en' ? 'Open Regional Development Space' : 'Không Gian Phát Triển Vùng Mở'}</h3>
-                  <p>{currentLang === 'en' ? 'Buon Ma Thuot is oriented as the center of the Central Highlands region, featuring dynamic innovation, healthcare, and education.' : 'Buôn Ma Thuột định hướng trở thành đô thị trung tâm vùng Tây Nguyên, hạt nhân đổi mới sáng tạo, tài chính, giáo dục và y tế chuyên sâu.'}</p>
-                  <Link to={`/posts?category=${encodeURIComponent('Dữ liệu & Báo cáo')}`} className="quick-access-link">{currentLang === 'en' ? 'Economic data →' : 'Báo cáo kinh tế →'}</Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 5: 3 TẦNG GIÁ TRỊ (MEDIA - DATA - PLATFORM)
-            ======================================================== */}
-        <section className="daklak-section">
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Architecture' : 'Kiến Trúc Nền Tảng'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'From Information Portal to Investment Platform' : 'Từ Trang Thông Tin Đến Nền Tảng Kết Nối Đầu Tư'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'DakLak.today builds 3 interconnected value layers that form a compounding growth engine for the local business community.'
-                  : 'Mô hình 3 tầng giá trị Media — Data — Platform giúp nền tảng phát triển bền vững, giữ vị thế độc lập và tạo giao dịch kinh tế thực tế.'}
-              </p>
-            </div>
-
-            <div className="layers-grid">
-              {/* Layer 1: Media */}
-              <div className="layer-card">
-                <span className="layer-badge">1. MEDIA • Truyền thông</span>
-                <h3>{currentLang === 'en' ? 'Media & Storytelling' : 'Tin Tức & Kể Chuyện Địa Phương'}</h3>
-                <ul>
-                  <li><i className="ti ti-check" /> Phóng sự chuyên sâu về con người, buôn làng và nông sản Đắk Lắk.</li>
-                  <li><i className="ti ti-check" /> Chuyên mục phân tích ngành hàng cà phê, hồ tiêu, sầu riêng xuất khẩu.</li>
-                  <li><i className="ti ti-check" /> Gương mặt doanh nhân tiêu biểu, mô hình khởi nghiệp đổi mới sáng tạo.</li>
-                  <li><i className="ti ti-check" /> Cập nhật chính sách, quy hoạch và chỉ đạo điều hành tỉnh Đắk Lắk.</li>
-                </ul>
-              </div>
-
-              {/* Layer 2: Data */}
-              <div className="layer-card layer-data">
-                <span className="layer-badge">2. DATA • Cơ sở dữ liệu</span>
-                <h3>{currentLang === 'en' ? 'Structured Data Assets' : 'Dữ Liệu Doanh Nghiệp & Dự Án'}</h3>
-                <ul>
-                  <li><i className="ti ti-check" /> Danh bạ hồ sơ năng lực 12.000+ doanh nghiệp đã xác thực thông tin.</li>
-                  <li><i className="ti ti-check" /> Bản đồ dữ liệu quy hoạch quỹ đất công nghiệp, vùng nguyên liệu sạch.</li>
-                  <li><i className="ti ti-check" /> Báo cáo biến động giá nông sản, thị trường cà phê thế giới theo ngày.</li>
-                  <li><i className="ti ti-check" /> Hồ sơ năng lực các dự án trọng điểm đang kêu gọi dòng vốn đầu tư.</li>
-                </ul>
-              </div>
-
-              {/* Layer 3: Platform */}
-              <div className="layer-card layer-platform">
-                <span className="layer-badge">3. PLATFORM • Nền tảng số</span>
-                <h3>{currentLang === 'en' ? 'Smart Connection Platform' : 'Kết Nối Đầu Tư & AI Matching'}</h3>
-                <ul>
-                  <li><i className="ti ti-check" /> Cơ chế gửi yêu cầu kết nối giao thương B2B trực tiếp tới doanh nghiệp.</li>
-                  <li><i className="ti ti-check" /> AI Matching: Tự động ghép nối nhà đầu tư với quỹ đất và dự án tối ưu.</li>
-                  <li><i className="ti ti-check" /> Hệ thống cấp vé điện tử QR, soát vé thời gian thực cho sự kiện diễn đàn.</li>
-                  <li><i className="ti ti-check" /> Dịch vụ Data Room hỗ trợ thẩm định dự án và xúc tiến đầu tư một cửa.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 6: CÀ PHÊ — TRỤ CỘT THƯƠNG HIỆU CỦA DAKLAK.TODAY
-            ======================================================== */}
-        <section className="daklak-section dark" id="coffee">
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Brand Pillar' : 'Trụ Cột Bản Sắc'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Coffee — The Core Brand Pillar of DakLak.today' : 'Cà Phê — Trụ Cột Thương Hiệu Của DakLak.today'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Kể câu chuyện hoàn chỉnh từ đất bazan, vùng trồng hữu cơ, bàn tay người nông dân đến công nghệ chế biến sâu và thị trường toàn cầu.'
-                  : 'DakLak.today kể câu chuyện hoàn chỉnh của cà phê: từ đất bazan, giọt mồ hôi người nông dân đến công nghệ chế biến sâu và hành trình vươn ra thế giới.'}
-              </p>
-            </div>
-
-            <div className="coffee-grid">
-              {/* Timeline 4 Chặng */}
-              <div className="coffee-timeline">
-                <div className="coffee-step">
-                  <div className="coffee-step-number">01</div>
-                  <div className="coffee-step-content">
-                    <h4>{currentLang === 'en' ? 'Raw Material Zone' : 'Vùng Nguyên Liệu Đất Đỏ Bazan'}</h4>
-                    <p>{currentLang === 'en' ? 'Over 800m altitude, nutrient-dense volcanic soil nurturing top-tier Robusta & Arabica beans.' : 'Độ cao lý tưởng trên 800m, tầng đất bazan màu mỡ giúp hạt cà phê Robusta Buôn Ma Thuột đạt hương vị đậm đà độc bản.'}</p>
-                  </div>
-                </div>
-
-                <div className="coffee-step">
-                  <div className="coffee-step-number">02</div>
-                  <div className="coffee-step-content">
-                    <h4>{currentLang === 'en' ? 'Coffee Farmers & Cooperatives' : 'Người Làm Cà Phê & HTX Kiểu Mới'}</h4>
-                    <p>{currentLang === 'en' ? 'Sustainable farming, 100% selective ripe cherry picking, ensuring high sugar content and transparent traceability.' : 'Mô hình liên kết nông hộ, hái chọn trái chín 100%, canh tác hữu cơ bền vững bảo vệ nguồn nước và đất đai đại ngàn.'}</p>
-                  </div>
-                </div>
-
-                <div className="coffee-step">
-                  <div className="coffee-step-number">03</div>
-                  <div className="coffee-step-content">
-                    <h4>{currentLang === 'en' ? 'Deep Processing Technology' : 'Công Nghệ Chế Biến Sâu Hiện Đại'}</h4>
-                    <p>{currentLang === 'en' ? 'Transitioning from raw green bean trade to specialty roasted beans, instant freeze-dried extracts, and craft coffee.' : 'Chuyển dịch mạnh mẽ từ xuất thô sang chế biến sâu: rang xay tiêu chuẩn châu Âu, sấy lạnh, trích ly tinh chất giá trị cao.'}</p>
-                  </div>
-                </div>
-
-                <div className="coffee-step">
-                  <div className="coffee-step-number">04</div>
-                  <div className="coffee-step-content">
-                    <h4>{currentLang === 'en' ? 'Global Market Expansion' : 'Chinh Phục Thị Trường Toàn Cầu'}</h4>
-                    <p>{currentLang === 'en' ? 'Exporting branded specialty coffee to 80+ countries, raising bean value up to 4x compared to raw exports.' : 'Xây dựng thương hiệu cà phê Đắk Lắk tại Mỹ, EU, Nhật Bản, Trung Quốc; nâng giá trị gia tăng thặng dư gấp 3 - 4 lần.'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Case Study & Chuỗi giá trị */}
-              <div className="coffee-case-box">
-                <h3>☕ {currentLang === 'en' ? 'Value Chain Case Study' : 'Điển Hình Chuỗi Giá Trị Cà Phê'}</h3>
-                
-                <div className="coffee-case-highlight">
-                  <h4>Bazan Heritage Coffee — Từ Nông Trường Đến Tách Cà Phê</h4>
-                  <p>
-                    Là minh chứng sống động cho chiến lược đầu tư công nghệ chế biến sâu tại Đắk Lắk. Sở hữu vùng trồng hữu cơ tại Cư M’gar, nhà máy rang xay chuẩn quốc tế và cam kết phát triển cộng đồng bền vững.
-                  </p>
-                </div>
-
-                <p style={{ fontSize: '0.88rem', color: '#BFAEA2', fontStyle: 'italic', marginBottom: '20px' }}>
-                  * DakLak.today cam kết tính minh bạch: Các bài viết thương mại và đối tác tài trợ luôn được gắn nhãn độc lập để bảo vệ tính khách quan lâu dài của nền tảng.
-                </p>
-
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <Link to="/posts?category=Cà%20phê%20Đắk%20Lắk" className="btn-daklak-gold" style={{ padding: '10px 20px', fontSize: '0.88rem' }}>
-                    Xem Chuyên mục Cà phê
-                  </Link>
-                  <button onClick={() => scrollToConsult('Hợp tác Chuỗi giá trị Cà phê')} className="btn-daklak-outline" style={{ padding: '10px 20px', fontSize: '0.88rem' }}>
-                    Kết nối Doanh nghiệp Cà phê
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 7: ĐẮK LẮK DATA DASHBOARD (6 CHỈ SỐ KINH TẾ)
-            ======================================================== */}
-        <section className="daklak-section" style={{ backgroundColor: '#F3ECE1' }}>
-          <div className="daklak-container">
-            <div className="daklak-section-header" style={{ marginBottom: '30px' }}>
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Regional Indicators' : 'Dữ Liệu Kinh Tế'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Dak Lak by Verified Data' : 'Đắk Lắk Bằng Những Con Số Biết Nói'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Key indicators illustrating the scale and growth potential of the Central Highlands economic hub.'
-                  : 'Các chỉ số tổng hợp minh họa quy mô và tiềm năng phát triển vượt bậc của trung tâm kinh tế Tây Nguyên.'}
-              </p>
-            </div>
-
-            <div className="data-stats-grid">
-              <div className="data-stat-card">
-                <div className="data-stat-num">213.000+</div>
-                <div className="data-stat-label">Hécta Cà phê</div>
-                <div className="data-stat-sub">Thủ phủ lớn nhất Việt Nam</div>
-              </div>
-
-              <div className="data-stat-card">
-                <div className="data-stat-num">560.000+</div>
-                <div className="data-stat-label">Tấn Sản lượng/Năm</div>
-                <div className="data-stat-sub">Cung ứng hơn 30% sản lượng cả nước</div>
-              </div>
-
-              <div className="data-stat-card">
-                <div className="data-stat-num">1,6+ Tỷ $</div>
-                <div className="data-stat-label">Kim ngạch Xuất khẩu</div>
-                <div className="data-stat-sub">Tăng trưởng bền vững 14%/năm</div>
-              </div>
-
-              <div className="data-stat-card">
-                <div className="data-stat-num">12.500+</div>
-                <div className="data-stat-label">Doanh nghiệp</div>
-                <div className="data-stat-sub">Cộng đồng hội viên năng động</div>
-              </div>
-
-              <div className="data-stat-card">
-                <div className="data-stat-num">50+</div>
-                <div className="data-stat-label">Dự án Kêu gọi Đầu tư</div>
-                <div className="data-stat-sub">Quy hoạch quỹ đất sạch 2026-2030</div>
-              </div>
-
-              <div className="data-stat-card">
-                <div className="data-stat-num">38,7%</div>
-                <div className="data-stat-label">Độ che phủ Rừng</div>
-                <div className="data-stat-sub">Lợi thế hấp thụ Carbon & Tín chỉ ESG</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 8: CƠ HỘI ĐẦU TƯ & DỰ ÁN TRỌNG ĐIỂM (id="tu-van-linh-vuc")
-            ======================================================== */}
-        <section className="daklak-section" id="tu-van-linh-vuc">
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Open Opportunities' : 'Cơ Hội Đang Mở'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Key Investment Projects in Dak Lak' : 'Dự Án Trọng Điểm Kêu Gọi Hợp Tác & Đầu Tư'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Curated list of verified investment projects ready for capital injection and strategic cooperation.'
-                  : 'Danh mục các dự án đã được thẩm định quy hoạch, sẵn sàng quỹ đất sạch và chào đón các nhà đầu tư chiến lược.'}
-              </p>
-
-              {/* Filter Tabs */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '20px' }}>
-                <button
-                  onClick={() => setSelectedSector('all')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '20px',
-                    border: '1px solid var(--bazan-red)',
-                    background: selectedSector === 'all' ? 'var(--bazan-red)' : 'transparent',
-                    color: selectedSector === 'all' ? '#FFF' : 'var(--primary-coffee)',
-                    fontWeight: '700',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Tất cả lĩnh vực ({investmentProjects.length})
-                </button>
-                <button
-                  onClick={() => setSelectedSector('agro')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '20px',
-                    border: '1px solid var(--bazan-red)',
-                    background: selectedSector === 'agro' ? 'var(--bazan-red)' : 'transparent',
-                    color: selectedSector === 'agro' ? '#FFF' : 'var(--primary-coffee)',
-                    fontWeight: '700',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Chế biến nông sản
-                </button>
-                <button
-                  onClick={() => setSelectedSector('hitech')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '20px',
-                    border: '1px solid var(--bazan-red)',
-                    background: selectedSector === 'hitech' ? 'var(--bazan-red)' : 'transparent',
-                    color: selectedSector === 'hitech' ? '#FFF' : 'var(--primary-coffee)',
-                    fontWeight: '700',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Nông nghiệp CNC
-                </button>
-                <button
-                  onClick={() => setSelectedSector('logistics')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '20px',
-                    border: '1px solid var(--bazan-red)',
-                    background: selectedSector === 'logistics' ? 'var(--bazan-red)' : 'transparent',
-                    color: selectedSector === 'logistics' ? '#FFF' : 'var(--primary-coffee)',
-                    fontWeight: '700',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Logistics & Kho bãi
-                </button>
-                <button
-                  onClick={() => setSelectedSector('tourism')}
-                  style={{
-                    padding: '8px 18px',
-                    borderRadius: '20px',
-                    border: '1px solid var(--bazan-red)',
-                    background: selectedSector === 'tourism' ? 'var(--bazan-red)' : 'transparent',
-                    color: selectedSector === 'tourism' ? '#FFF' : 'var(--primary-coffee)',
-                    fontWeight: '700',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Du lịch Sinh thái
-                </button>
-              </div>
-            </div>
-
-            <div className={`projects-grid count-${Math.min(4, filteredProjects.length || 4)}`}>
-              {filteredProjects.map((project) => (
-                <div key={project.id} className="project-card">
-                  <div>
-                    <div className="project-header-row">
-                      <span className="project-sector-badge">{project.sector}</span>
-                      <span className="project-status-badge">⭐ {project.status}</span>
-                    </div>
-
-                    <h3>{project.title}</h3>
-
-                    <div className="project-meta-list">
-                      <div className="project-meta-item">
-                        <i className="ti ti-map-pin" />
-                        <span><strong>Địa bàn:</strong> {project.location}</span>
-                      </div>
-                      <div className="project-meta-item">
-                        <i className="ti ti-coin" />
-                        <span><strong>Quy mô vốn:</strong> {project.scale}</span>
-                      </div>
-                      <div className="project-meta-item">
-                        <i className="ti ti-info-circle" />
-                        <span>{project.desc}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="project-btn-row">
-                    <button 
-                      onClick={() => scrollToConsult(`Dự án: ${project.title}`)}
-                      className="btn-daklak-primary"
-                      style={{ padding: '10px 18px', fontSize: '0.88rem', flex: 1, justifyContent: 'center' }}
-                    >
-                      Gửi Yêu Cầu Kết Nối
-                    </button>
-                    <Link
-                      to={`/posts?category=${encodeURIComponent('Đầu tư & Dự án')}`}
-                      className="btn-daklak-outline"
-                      style={{ padding: '10px 16px', fontSize: '0.88rem', color: 'var(--primary-coffee)', borderColor: 'var(--border-strong)' }}
-                    >
-                      Hồ sơ
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 9: BẢNG TIN & CÂU CHUYỆN ĐẮK LẮK HÔM NAY (DYNAMIC POSTS)
-            ======================================================== */}
-        <section className="daklak-section" style={{ backgroundColor: 'var(--cream-alt)' }}>
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Stories & News' : 'Câu Chuyện Hôm Nay'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Dak Lak Stories & Latest Business Opportunities' : 'Nhịp Đập Kinh Tế & Cơ Hội Giao Thương Mới'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Real-time updates, economic insights, and enterprise reports published on DakLak.today.'
-                  : 'Thông tin phân tích độc lập, câu chuyện sản xuất thực tế và các cơ hội kết nối giao thương được cập nhật liên tục.'}
-              </p>
-            </div>
-
-            <div className={`posts-grid count-${Math.min(4, latestPosts.length || 4)}`}>
-              {latestPosts.map((post) => (
-                <div key={post.id || post.slug} className="post-card">
-                  <div className="post-card-img-box">
-                    <img 
-                      src={post.image_url || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80'} 
-                      alt={post.title}
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80';
-                      }}
-                    />
-                    <span className="post-cat-badge">{post.category || 'Tin nổi bật'}</span>
-                  </div>
-                  <div className="post-card-body">
-                    <div className="post-card-date">
-                      <i className="ti ti-calendar" />
-                      <span>{post.created_at ? new Date(post.created_at).toLocaleDateString('vi-VN') : 'Mới cập nhật'}</span>
-                      {post.author_name && <span style={{ marginLeft: '8px' }}>• {post.author_name}</span>}
-                    </div>
-                    <h3 className="post-card-title">{post.title}</h3>
-                    <p className="post-card-summary">{post.summary || post.short_desc || 'Bấm để đọc toàn bộ bài viết và khám phá cơ hội giao thương...'}</p>
-                    <Link to={`/posts/${post.slug || post.id}`} className="quick-access-link" style={{ marginTop: 'auto' }}>
-                      {currentLang === 'en' ? 'View details →' : 'Xem chi tiết →'}
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: '40px' }}>
-              <Link to="/posts" className="btn-daklak-outline" style={{ color: 'var(--primary-coffee)', borderColor: 'var(--bazan-red)' }}>
-                {currentLang === 'en' ? 'View all articles & opportunities' : 'Xem toàn bộ bảng tin & cơ hội giao thương'} <i className="ti ti-arrow-right" />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 10: DOANH NGHIỆP ĐẮK LẮK TIÊU BIỂU (DYNAMIC MEMBERS)
-            ======================================================== */}
-        <section className="daklak-section">
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Verified Directory' : 'Hội Viên Tiêu Biểu'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Leading Enterprises & Ecosystem Partners' : 'Cộng Đồng Doanh Nghiệp Đắk Lắk'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Verified profiles of top local companies and strategic investment partners in Dak Lak.'
-                  : 'Hồ sơ năng lực của các doanh nghiệp đầu ngành đã xác thực, tiên phong nâng tầm chuỗi giá trị và hội nhập quốc tế.'}
-              </p>
-            </div>
-
-            <div className={`members-grid count-${Math.min(4, featuredMembers.length || 3)}`}>
-              {featuredMembers.map((m) => (
-                <div key={m.id} className="member-card">
-                  <div className="member-card-header">
-                    <img 
-                      src={m.logo_url || 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=400&q=80'} 
-                      alt={m.company_name || m.name} 
-                      className="member-logo"
-                      onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=400&q=80';
-                      }}
-                    />
-                    <div className="member-info">
-                      <h4>{m.company_name || m.name}</h4>
-                      <span className="member-tier-pill">⭐ {m.tier || 'Thành viên'} Partner</span>
-                    </div>
-                  </div>
-
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.5', flexGrow: 1 }}>
-                    {m.bio || m.description || `Lĩnh vực hoạt động: ${m.industry || 'Sản xuất & kinh doanh nông sản'}.`}
-                  </p>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(122, 62, 29, 0.08)' }}>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>📍 {m.address || 'TP. Buôn Ma Thuột'}</span>
-                    <Link to="/members" className="quick-access-link" style={{ fontSize: '0.85rem' }}>
-                      Xem Showroom →
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: '35px' }}>
-              <Link to="/members" className="btn-daklak-primary">
-                <i className="ti ti-address-book" />
-                <span>{currentLang === 'en' ? 'Explore Full Enterprise Directory' : 'Tra cứu Danh bạ Toàn bộ Doanh nghiệp'}</span>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 11: SỰ KIỆN NỔI BẬT & COUNTDOWN (id="su-kien")
-            ======================================================== */}
-        <section className="daklak-section" id="su-kien" style={{ backgroundColor: '#26160E', color: '#FFF' }}>
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge" style={{ background: 'rgba(213, 163, 63, 0.2)', color: 'var(--gong-gold)', borderColor: 'var(--gong-gold)' }}>
-                {currentLang === 'en' ? 'Upcoming Forum' : 'Sự Kiện Trọng Điểm'}
-              </span>
-              <h2 className="daklak-section-title" style={{ color: '#FFF' }}>
-                {currentLang === 'en' ? 'Upcoming Events & Trade Summits' : 'Lễ Hội & Diễn Đàn Xúc Tiến Sắp Diễn Ra'}
-              </h2>
-              <p className="daklak-section-desc" style={{ color: '#D1C5BC' }}>
-                {currentLang === 'en'
-                  ? 'Connect directly with government leaders, international trade delegations, and institutional investors.'
-                  : 'Nơi quy tụ các chuyên gia kinh tế, nhà xuất nhập khẩu quốc tế và cơ hội tiếp cận dòng vốn đầu tư trực tiếp.'}
-              </p>
-            </div>
-
-            {eventsList && eventsList.length > 0 && (
-              <div className="featured-event-box">
-                <div>
-                  <span style={{ display: 'inline-block', background: 'var(--bazan-red)', color: '#FFF', padding: '4px 12px', borderRadius: '14px', fontSize: '0.78rem', fontWeight: '800', marginBottom: '14px' }}>
-                    SỰ KIỆN TIÊU ĐIỂM
-                  </span>
-                  <h3 style={{ fontSize: '1.6rem', fontWeight: '900', color: '#FFF', marginBottom: '14px', lineHeight: '1.3' }}>
-                    {eventsList[0].title}
-                  </h3>
-                  <p style={{ fontSize: '0.95rem', color: '#E0D4CA', marginBottom: '18px', lineHeight: '1.6' }}>
-                    {eventsList[0].short_desc || eventsList[0].description}
-                  </p>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.9rem', color: '#D1C5BC' }}>
-                    <div>📍 <strong>Địa điểm:</strong> {eventsList[0].location || 'TP. Buôn Ma Thuột, Tỉnh Đắk Lắk'}</div>
-                    <div>🏢 <strong>Đơn vị tổ chức:</strong> {eventsList[0].organizer || 'DakLak.today Platform'}</div>
-                  </div>
-
-                  <div style={{ marginTop: '24px', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                    <button 
-                      onClick={() => handleOpenRegisterModal(eventsList[0])}
-                      className="btn-daklak-gold"
-                    >
-                      <i className="ti ti-ticket" />
-                      <span>{currentLang === 'en' ? 'Get QR Ticket Now' : 'Đăng Ký Vé QR Miễn Phí'}</span>
-                    </button>
-                    <Link to={`/events/${eventsList[0].id}`} className="btn-daklak-outline">
-                      {currentLang === 'en' ? 'Event Details' : 'Xem chi tiết sự kiện'}
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Countdown Timer */}
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1rem', color: 'var(--gong-gold)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    ⏳ ĐẾM NGƯỢC THỜI GIAN KHAI MẠC
-                  </div>
-
-                  <HomeEventCountdown eventDate={eventsList[0]?.event_date} />
-
-                  <p style={{ fontSize: '0.85rem', color: '#BFAEA2' }}>
-                    Hệ thống cấp vé QR tự động • Quét mã camera điểm danh trong 1 giây
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 12: DU LỊCH & TRẢI NGHIỆM ("ĐI ĐÂU CUỐI TUẦN?")
-            ======================================================== */}
-        <section className="daklak-section" style={{ backgroundColor: '#F8F3EC' }}>
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Travel Experiences' : 'Khám Phá Cuối Tuần'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Touch the Great Forests — Experience Dak Lak Deeper' : 'Chạm Vào Đại Ngàn — Trải Nghiệm Đắk Lắk Sâu Hơn'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Carefully curated experiential itineraries designed for culture explorers and eco-travelers.'
-                  : 'Gợi ý các hành trình trải nghiệm được biên tập chuyên sâu, kết nối ẩm thực bản địa, thiên nhiên hùng vĩ và làng nghề cà phê.'}
-              </p>
-            </div>
-
-            <div className="itinerary-grid">
-              {/* Itinerary 1 */}
-              <div className="itinerary-card">
-                <div style={{ position: 'relative', height: '200px' }}>
-                  <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80" alt="Hành trình 2N1Đ" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span className="itinerary-badge">Hành trình 2 Ngày 1 Đêm</span>
-                </div>
-                <div className="itinerary-body">
-                  <h3>Hành Trình Di Sản Cà Phê & Thác Nước Đại Ngàn</h3>
-                  <div className="itinerary-stops">Buôn Ma Thuột ➔ Thác Dray Nur ➔ Bảo tàng Cà phê</div>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', flexGrow: 1 }}>
-                    Khám phá ly cà phê nồng nàn tại thủ phủ, thưởng lãm kiến trúc Bảo tàng Thế giới Cà phê và đón hoàng hôn bên cụm thác Dray Nur - Dray Sáp huyền thoại.
-                  </p>
-                  <Link to={`/posts?category=${encodeURIComponent('Du lịch & Trải nghiệm')}`} className="quick-access-link" style={{ marginTop: '14px' }}>
-                    Xem lịch trình chi tiết →
-                  </Link>
-                </div>
-              </div>
-
-              {/* Itinerary 2 */}
-              <div className="itinerary-card">
-                <div style={{ position: 'relative', height: '200px' }}>
-                  <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80" alt="Hành trình 3N2Đ" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span className="itinerary-badge" style={{ background: 'var(--bazan-brown)' }}>Hành trình 3 Ngày 2 Đêm</span>
-                </div>
-                <div className="itinerary-body">
-                  <h3>Thảo Nguyên Xanh, Hồ Lắk & Hồn Sử Thi M’Nông</h3>
-                  <div className="itinerary-stops">TP. Buôn Ma Thuột ➔ Vườn QG Yok Đôn ➔ Hồ Lắk</div>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', flexGrow: 1 }}>
-                    Trải nghiệm đi thuyền độc mộc trên Hồ Lắk thơ mộng, nghỉ đêm tại biệt điện Bảo Đại, nghe nghệ nhân kể Khan và thưởng thức cơm lam gà sa lửa.
-                  </p>
-                  <Link to={`/posts?category=${encodeURIComponent('Du lịch & Trải nghiệm')}`} className="quick-access-link" style={{ marginTop: '14px' }}>
-                    Xem lịch trình chi tiết →
-                  </Link>
-                </div>
-              </div>
-
-              {/* Itinerary 3 */}
-              <div className="itinerary-card">
-                <div style={{ position: 'relative', height: '200px' }}>
-                  <img src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=800&q=80" alt="Cà phê farmstay" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span className="itinerary-badge" style={{ background: 'var(--bazan-red)' }}>Nông nghiệp Sinh thái</span>
-                </div>
-                <div className="itinerary-body">
-                  <h3>Coffee Farm Tour: Một Ngày Làm Nông Dân Hái Cà Phê</h3>
-                  <div className="itinerary-stops">Cư M’gar ➔ Nông trường Hữu cơ ➔ Xưởng Rang thủ công</div>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: '1.5', flexGrow: 1 }}>
-                    Trực tiếp hái những trái cà phê chín mọng, học kỹ thuật thử nếm Cupping quốc tế và tự tay rang mẻ cà phê kỷ niệm mang về làm quà.
-                  </p>
-                  <Link to={`/posts?category=${encodeURIComponent('Du lịch & Trải nghiệm')}`} className="quick-access-link" style={{ marginTop: '14px' }}>
-                    Xem lịch trình chi tiết →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 13: TRỢ LÝ AI & AI MATCHING ĐẦU TƯ
-            ======================================================== */}
-        <section className="daklak-section" style={{ backgroundColor: '#1C0F08' }}>
-          <div className="daklak-container">
-            <div className="ai-box">
-              <div style={{ maxWidth: '820px', margin: '0 auto', textAlign: 'center' }}>
-                <span className="daklak-section-badge" style={{ background: 'rgba(213, 163, 63, 0.2)', color: 'var(--gong-gold)', border: '1px solid var(--gong-gold)' }}>
-                  🤖 TRÍ TUỆ NHÂN TẠO TÂY NGUYÊN
-                </span>
-                <h2 style={{ fontSize: '2.2rem', fontWeight: '900', color: '#FFF', margin: '14px 0 16px' }}>
-                  Hỏi AI Về Đắk Lắk — Biến Dữ Liệu Thành Cơ Hội Hợp Tác
-                </h2>
-                <p style={{ color: '#D1C5BC', fontSize: '1.05rem', lineHeight: '1.6', marginBottom: '25px' }}>
-                  Trợ lý AI Gemini Flash được nạp sẵn tri thức về quy hoạch tỉnh, danh bạ doanh nghiệp, cơ chế thuế, dự án kêu gọi đầu tư và cẩm nang du lịch Đắk Lắk.
-                </p>
-
-                {/* AI Input Form */}
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  borderRadius: '50px',
-                  padding: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-                  marginBottom: '20px'
-                }}>
+              {/* Thanh tìm kiếm dữ liệu */}
+              <div className="ka-hero-search">
+                <form onSubmit={handleSearchSubmit} className="ka-search-input-group">
+                  <i className="ti ti-search" style={{ alignSelf: 'center', marginLeft: '12px', color: '#627D98', fontSize: '18px' }}></i>
                   <input 
                     type="text" 
-                    placeholder="Ví dụ: Tôi muốn đầu tư 50 tỷ vào nông nghiệp công nghệ cao..."
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      outline: 'none',
-                      padding: '12px 22px',
-                      fontSize: '1rem',
-                      fontFamily: 'inherit',
-                      color: 'var(--text-dark)',
-                      background: 'transparent'
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.target.value.trim()) {
-                        navigate(`/ai-chat?q=${encodeURIComponent(e.target.value.trim())}`);
-                      }
-                    }}
+                    className="ka-search-input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={currentLang === 'en' ? "Search places, business directory, events..." : "Tìm kiếm điểm đến, doanh nghiệp, sự kiện..."}
                   />
-                  <Link 
-                    to="/ai-chat"
-                    className="btn-daklak-primary"
-                    style={{ padding: '12px 26px', borderRadius: '40px' }}
-                  >
-                    <span>Hỏi AI</span>
-                    <i className="ti ti-sparkles" />
+                  <button type="submit" className="ka-search-btn">
+                    <span>{currentLang === 'en' ? 'Search' : 'Tìm kiếm'}</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Visual Card bên phải */}
+            <div className="ka-hero-visual-card">
+              <img 
+                src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80" 
+                alt="Toàn cảnh Đồi Thiên Văn và Kiến An" 
+                className="ka-hero-visual-img"
+              />
+              <div className="ka-hero-visual-badge">
+                <h4>Đồi Thiên Văn & Hồ Hạnh Phúc</h4>
+                <p>Biểu tượng tự nhiên, di sản khoa học khí tượng và không gian văn hóa cộng đồng Kiến An.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ==============================================================================
+            2. GIỚI THIỆU NGẮN VỀ KIENAN.TODAY & 4 LỢI ÍCH (Chương 5 Landing Page Docx)
+            ============================================================================== */}
+        <section className="ka-section" style={{ background: '#FFFFFF' }}>
+          <div className="ka-container">
+            <div className="ka-section-header">
+              <span className="ka-section-badge">
+                <i className="ti ti-info-circle"></i> Về kienan.today
+              </span>
+              <h2 className="ka-section-title">
+                Một địa chỉ số để hiểu Kiến An và kết nối những cơ hội mới
+              </h2>
+              <p className="ka-section-desc">
+                “kienan.today kết nối thông tin địa phương, điểm đến, doanh nghiệp, dịch vụ và hoạt động cộng đồng. Người dân tìm được thông tin hữu ích, doanh nghiệp có thêm cơ hội giới thiệu năng lực, người quan tâm đến Kiến An có thể khám phá và tìm cách đồng hành.”
+              </p>
+            </div>
+
+            {/* 4 Lợi ích với biểu tượng tinh tế */}
+            <div className="ka-intro-grid">
+              <div className="ka-intro-card">
+                <div className="ka-intro-icon">
+                  <i className="ti ti-map-2"></i>
+                </div>
+                <h3>Khám phá địa phương</h3>
+                <p>Tìm hiểu cảnh quan sinh thái, chiều sâu văn hóa và câu chuyện lịch sử Đồi Thiên Văn, Hồ Hạnh Phúc.</p>
+              </div>
+
+              <div className="ka-intro-card">
+                <div className="ka-intro-icon">
+                  <i className="ti ti-briefcase"></i>
+                </div>
+                <h3>Kết nối doanh nghiệp</h3>
+                <p>Không gian giới thiệu sản phẩm, dịch vụ địa phương và mở rộng cơ hội hợp tác kinh doanh bền vững.</p>
+              </div>
+
+              <div className="ka-intro-card">
+                <div className="ka-intro-icon">
+                  <i className="ti ti-calendar-event"></i>
+                </div>
+                <h3>Tham gia cộng đồng</h3>
+                <p>Theo dõi lịch hoạt động văn hóa, sự kiện chuyển đổi số và các sáng kiến xã hội phù hợp.</p>
+              </div>
+
+              <div className="ka-intro-card">
+                <div className="ka-intro-icon">
+                  <i className="ti ti-robot"></i>
+                </div>
+                <h3>Ứng dụng AI thực tiễn</h3>
+                <p>Tìm kiếm thông tin thông minh 24/7, nâng cao kỹ năng số cho cán bộ, doanh nghiệp và người dân.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ==============================================================================
+            3. BANNER "LÀM CHỦ AI BỨT PHÁ TƯƠNG LAI" & 3 KHỐI GIẢI PHÁP ADT (Chương 6 Docx)
+            ============================================================================== */}
+        <section className="ka-section" style={{ background: '#F4F7FA', paddingTop: '40px' }} id="giai-phap-ai">
+          <div className="ka-container">
+            {/* Banner nổi bật chạy ngang */}
+            <div className="ka-ai-banner-wrap">
+              <div className="ka-ai-banner">
+                <div className="ka-ai-banner-pattern"></div>
+                <div className="ka-ai-banner-content">
+                  <div className="ka-ai-banner-agency">
+                    <i className="ti ti-award"></i>
+                    <span>CÔNG TY CỔ PHẦN ADT QUỐC TẾ</span>
+                  </div>
+                  <h2 className="ka-ai-banner-title">
+                    Làm chủ AI <span>bứt phá tương lai</span>
+                  </h2>
+                  <p className="ka-ai-banner-desc">
+                    “Đưa AI vào công việc thực tế — hỗ trợ chính quyền, phát triển doanh nghiệp và nâng cao hiệu quả tuyển sinh.”
+                  </p>
+                  <a href="#ai-solutions-cards" className="ka-ai-banner-btn">
+                    <span>Khám phá giải pháp AI</span>
+                    <i className="ti ti-arrow-down"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Đúng 3 Khối giải pháp AI nằm ngay dưới Banner */}
+            <div className="ka-ai-solutions-grid" id="ai-solutions-cards">
+              {/* Khối 1: Chính quyền */}
+              <a 
+                href="https://www.adtgroup.net/bo-doi-tro-ly-ai-phuong-xa-dat-giai-nhi-ha-noi-2025" 
+                target="_blank" 
+                rel="noreferrer"
+                className="ka-ai-solution-card"
+              >
+                <div className="ka-ai-card-top">
+                  <div>
+                    <span className="ka-ai-target-badge">CHÍNH QUYỀN</span>
+                    <span className="ka-ai-secondary-badge">Giải Nhì CCHC Hà Nội 2025</span>
+                  </div>
+                  <h3 className="ka-ai-card-title">Bộ Đôi Trợ Lý AI Phường/Xã</h3>
+                  <p className="ka-ai-card-desc">
+                    “Giải pháp AI hỗ trợ cán bộ và người dân trong tra cứu thông tin, hướng dẫn thủ tục và xử lý công việc. Tìm hiểu dấu ấn tại cuộc thi cải cách hành chính Hà Nội năm 2025.”
+                  </p>
+                </div>
+                <div className="ka-ai-card-btn">
+                  <span>Tìm hiểu giải pháp</span>
+                  <i className="ti ti-arrow-up-right"></i>
+                </div>
+              </a>
+
+              {/* Khối 2: Doanh nghiệp */}
+              <a 
+                href="https://www.adtgroup.net/orion-nen-tang-ai-agent-quan-tri-doanh-nghiep" 
+                target="_blank" 
+                rel="noreferrer"
+                className="ka-ai-solution-card"
+              >
+                <div className="ka-ai-card-top">
+                  <div>
+                    <span className="ka-ai-target-badge">DOANH NGHIỆP</span>
+                  </div>
+                  <h3 className="ka-ai-card-title">ORION — Hệ sinh thái AI cho doanh nghiệp</h3>
+                  <p className="ka-ai-card-desc">
+                    “Kết nối bán hàng, marketing, tri thức và hỗ trợ điều hành. ORION giúp doanh nghiệp đưa AI vào những công việc tạo ra giá trị mỗi ngày.”
+                  </p>
+                  <div className="ka-ai-card-features">
+                    AI Sales · Auto Marketing · AI Center · AI Management
+                  </div>
+                </div>
+                <div className="ka-ai-card-btn">
+                  <span>Khám phá ORION</span>
+                  <i className="ti ti-arrow-up-right"></i>
+                </div>
+              </a>
+
+              {/* Khối 3: Giáo dục */}
+              <a 
+                href="https://www.adtgroup.net/edunow-ai-giai-phap-ung-dung-ai-cho-viec-tuyen-sinh" 
+                target="_blank" 
+                rel="noreferrer"
+                className="ka-ai-solution-card"
+              >
+                <div className="ka-ai-card-top">
+                  <div>
+                    <span className="ka-ai-target-badge">GIÁO DỤC</span>
+                  </div>
+                  <h3 className="ka-ai-card-title">Edunow.AI — Trợ lý AI tuyển sinh</h3>
+                  <p className="ka-ai-card-desc">
+                    “Xây dựng trợ lý tuyển sinh từ dữ liệu chính thức của nhà trường, hỗ trợ giải đáp thông tin cho thí sinh và phụ huynh trên website, Zalo OA và Facebook Page.”
+                  </p>
+                </div>
+                <div className="ka-ai-card-btn">
+                  <span>Tìm hiểu Edunow.AI</span>
+                  <i className="ti ti-arrow-up-right"></i>
+                </div>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ==============================================================================
+            4. KHÁM PHÁ KIẾN AN (Chương 7 Docx: Hồ Hạnh Phúc & Đồi Thiên Văn)
+            ============================================================================== */}
+        <section className="ka-section" id="kham-pha" style={{ background: '#FFFFFF' }}>
+          <div className="ka-container">
+            <div className="ka-section-header">
+              <span className="ka-section-badge">
+                <i className="ti ti-landscape"></i> Điểm đến & Cảnh quan
+              </span>
+              <h2 className="ka-section-title">
+                Những không gian làm nên dấu ấn Kiến An
+              </h2>
+              <p className="ka-section-desc">
+                Cảnh quan thơ mộng, không khí trong lành và chiều sâu lịch sử văn hóa tạo nên bản sắc độc đáo của vùng đất dưới chân đồi Thiên Văn.
+              </p>
+            </div>
+
+            {/* 2 Khối ảnh lớn: Hồ Hạnh Phúc & Đồi Thiên Văn */}
+            <div className="ka-places-grid">
+              <div className="ka-place-feature-card">
+                <img 
+                  src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1000&q=80" 
+                  alt="Hồ Hạnh Phúc Kiến An" 
+                  className="ka-place-bg-img"
+                />
+                <div className="ka-place-overlay"></div>
+                <div className="ka-place-content">
+                  <span className="ka-place-tag">Không gian gặp gỡ cộng đồng</span>
+                  <h3 className="ka-place-title">Hồ Hạnh Phúc</h3>
+                  <p className="ka-place-desc">
+                    “Khám phá không gian cảnh quan và những hoạt động văn hóa, sự kiện, trải nghiệm gắn với nhịp sống Kiến An.”
+                  </p>
+                  <Link to="/posts?category=Khám%20phá%20Kiến%20An" className="ka-place-link">
+                    <span>Tìm hiểu câu chuyện Hồ Hạnh Phúc</span>
+                    <i className="ti ti-arrow-right"></i>
                   </Link>
                 </div>
-
-                {/* Quick suggestions */}
-                <div style={{ fontSize: '0.85rem', color: '#BFAEA2', marginBottom: '8px' }}>
-                  Gợi ý câu hỏi thông minh:
-                </div>
-                <div className="ai-query-chips" style={{ justifyContent: 'center' }}>
-                  <span className="ai-query-chip" onClick={() => navigate('/ai-chat?q=Tìm%20doanh%20nghiệp%20chế%20biến%20sâu%20cà%20phê%20uy%20tín')}>
-                    ☕ Tìm doanh nghiệp chế biến sâu cà phê
-                  </span>
-                  <span className="ai-query-chip" onClick={() => navigate('/ai-chat?q=Quy%20hoạch%20khu%20công%20nghiệp%20Hòa%20Phú%20mở%20rộng')}>
-                    🏭 Quy hoạch KCN Hòa Phú mở rộng
-                  </span>
-                  <span className="ai-query-chip" onClick={() => navigate('/ai-chat?q=Lịch%20trình%20du%20lịch%20Buôn%20Ma%20Thuột%202%20ngày%201%20đêm')}>
-                    🧭 Gợi ý lịch trình 2 ngày 1 đêm
-                  </span>
-                  <span className="ai-query-chip" onClick={() => navigate('/ai-chat?q=Chính%20sách%20ưu%20đãi%20thuế%20đầu%20tư%20vào%20Đắk%20Lắk')}>
-                    💰 Chính sách ưu đãi thuế đầu tư
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 14: LỘ TRÌNH 6 GIAI ĐOẠN PHÁT TRIỂN HỆ SINH THÁI SỐ
-            ======================================================== */}
-        <section className="daklak-section">
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Digital Roadmap' : 'Lộ Trình Phát Triển'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'From Vision to a Comprehensive Digital Ecosystem' : 'Lộ Trình Xây Dựng Hệ Sinh Thái Số Đắk Lắk'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'A disciplined multi-stage development plan ensuring sustainability, credibility, and lasting commercial value.'
-                  : 'Chiến lược phát triển 6 giai đoạn đưa DakLak.today từng bước trở thành cổng kết nối đầu tư hạt nhân của toàn vùng Tây Nguyên.'}
-              </p>
-            </div>
-
-            <div className="roadmap-grid">
-              <div className="roadmap-card">
-                <div className="roadmap-stage">Giai đoạn 1 (0 – 6 tháng)</div>
-                <h3>Xây Dựng Uy Tín</h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Xuất bản tin tức kinh tế chất lượng, văn hóa cà phê, thu hút độc giả tự nhiên và định vị nhận diện thương hiệu số.</p>
               </div>
 
-              <div className="roadmap-card" style={{ borderLeftColor: 'var(--forest-green)' }}>
-                <div className="roadmap-stage" style={{ color: 'var(--forest-green)' }}>Giai đoạn 2 (3 – 9 tháng)</div>
-                <h3>Cơ Sở Dữ Liệu Nền</h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Chuẩn hóa danh mục doanh nghiệp, vùng nguyên liệu, quỹ đất và dự án kêu gọi đầu tư theo cấu trúc số hiện đại.</p>
-              </div>
-
-              <div className="roadmap-card" style={{ borderLeftColor: 'var(--gong-gold)' }}>
-                <div className="roadmap-stage" style={{ color: '#B3832B' }}>Giai đoạn 3 (6 – 12 tháng)</div>
-                <h3>MVP Kết Nối Đầu Tư</h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Mở tính năng đăng dự án, gửi yêu cầu kết nối giao thương B2B, quản lý hồ sơ và đặt lịch làm việc với nhà đầu tư.</p>
-              </div>
-
-              <div className="roadmap-card" style={{ borderLeftColor: 'var(--bazan-brown)' }}>
-                <div className="roadmap-stage" style={{ color: 'var(--bazan-brown)' }}>Giai đoạn 4 (12 – 18 tháng)</div>
-                <h3>AI Matching Đa Nguồn</h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Ứng dụng AI ghép đôi nhà đầu tư với doanh nghiệp, phân tích khả năng gọi vốn và tự động gợi ý đối tác theo chuỗi giá trị.</p>
-              </div>
-
-              <div className="roadmap-card">
-                <div className="roadmap-stage">Giai đoạn 5 (18 – 24 tháng)</div>
-                <h3>Hệ Sinh Thái Đầu Tư</h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Tích hợp mạng lưới ngân hàng, quỹ ESG, kiểm toán, luật sư tư vấn M&A và các công ty logistics hỗ trợ trọn gói.</p>
-              </div>
-
-              <div className="roadmap-card" style={{ borderLeftColor: 'var(--gong-gold)' }}>
-                <div className="roadmap-stage" style={{ color: '#B3832B' }}>Tầm nhìn 2 – 5 năm</div>
-                <h3>Tài Sản Dữ Liệu & AI</h3>
-                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>Phát triển chỉ số môi trường đầu tư Đắk Lắk, bản đồ dòng vốn FDI, phòng dữ liệu ảo Data Room phục vụ giao dịch lớn.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 15: GÓI THAM GIA MẠNG LƯỚI (MEMBERSHIP TIERS)
-            ======================================================== */}
-        <section className="daklak-section" style={{ backgroundColor: 'var(--cream-alt)' }}>
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Membership' : 'Gia Nhập Mạng Lưới'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Flexible Membership Packages' : 'Lựa Chọn Gói Tham Gia Phù Hợp'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Join our verified business community to expand your network, elevate brand awareness, and capture growth.'
-                  : 'Gia nhập cộng đồng doanh nghiệp và đối tác đầu tư Đắk Lắk. Gói Khám phá & Gói Silver được duyệt tự động ngay lập tức.'}
-              </p>
-            </div>
-
-            <div className="tiers-grid">
-              {/* Tier 1 */}
-              <div className="tier-card">
-                <div>
-                  <span className="tier-badge">CƠ BẢN</span>
-                  <h3 className="tier-title">Khám Phá</h3>
-                  <div className="tier-price">Miễn phí</div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', textAlign: 'left', fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <li>✓ Xem đầy đủ tin tức & sự kiện</li>
-                    <li>✓ Tra cứu danh bạ doanh nghiệp</li>
-                    <li>✓ Hỏi đáp Trợ lý AI miễn phí</li>
-                    <li>✓ Đăng ký vé QR tham gia sự kiện</li>
-                  </ul>
-                </div>
-                <Link to="/register" className="btn-daklak-outline" style={{ color: 'var(--primary-coffee)', borderColor: 'var(--border-strong)', justifyContent: 'center' }}>
-                  Đăng ký miễn phí
-                </Link>
-              </div>
-
-              {/* Tier 2 */}
-              <div className="tier-card featured">
-                <div>
-                  <span className="tier-badge" style={{ background: 'var(--bazan-red)', color: '#FFF' }}>PHỔ BIẾN NHẤT</span>
-                  <h3 className="tier-title">Doanh Nghiệp Kết Nối</h3>
-                  <div className="tier-price" style={{ color: 'var(--bazan-red)' }}>Silver Partner</div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', textAlign: 'left', fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <li>✓ Tự động duyệt ngay lập tức</li>
-                    <li>✓ Cấp Showroom số xác thực</li>
-                    <li>✓ Đăng bài viết & cơ hội giao thương</li>
-                    <li>✓ Nhận lead liên hệ đối tác trực tiếp</li>
-                    <li>✓ Ưu tiên hiển thị trên trang chủ</li>
-                  </ul>
-                </div>
-                <Link to="/register" className="btn-daklak-primary" style={{ justifyContent: 'center' }}>
-                  Đăng ký Silver Ngay
-                </Link>
-              </div>
-
-              {/* Tier 3 */}
-              <div className="tier-card">
-                <div>
-                  <span className="tier-badge" style={{ background: 'rgba(213, 163, 63, 0.2)', color: '#B3832B' }}>CAO CẤP</span>
-                  <h3 className="tier-title">Doanh Nghiệp Tiêu Biểu</h3>
-                  <div className="tier-price" style={{ color: 'var(--primary-coffee)' }}>Gold Partner</div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', textAlign: 'left', fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <li>✓ Đầy đủ quyền lợi gói Silver</li>
-                    <li>✓ Huy hiệu Đối tác Vàng chứng nhận</li>
-                    <li>✓ Bài PR chuyên đề phóng sự báo chí</li>
-                    <li>✓ Ghép đôi ưu tiên với Nhà đầu tư</li>
-                    <li>✓ Hỗ trợ chuẩn hóa hồ sơ gọi vốn</li>
-                  </ul>
-                </div>
-                <button onClick={() => scrollToConsult('Gói Hội viên Gold Partner')} className="btn-daklak-gold" style={{ justifyContent: 'center' }}>
-                  Tư vấn Nâng hạng
-                </button>
-              </div>
-
-              {/* Tier 4 */}
-              <div className="tier-card">
-                <div>
-                  <span className="tier-badge" style={{ background: 'rgba(31, 90, 58, 0.2)', color: 'var(--forest-green)' }}>CHIẾN LƯỢC</span>
-                  <h3 className="tier-title">Nhà Đầu Tư Chiến Lược</h3>
-                  <div className="tier-price" style={{ color: 'var(--forest-green)' }}>Diamond VIP</div>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', textAlign: 'left', fontSize: '0.88rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <li>✓ Tiếp cận hồ sơ dự án bí mật Data Room</li>
-                    <li>✓ Kết nối trực tiếp Lãnh đạo ban ngành</li>
-                    <li>✓ Tham dự các phiên bàn tròn kín</li>
-                    <li>✓ Cố vấn xúc tiến đầu tư 1 kèm 1</li>
-                  </ul>
-                </div>
-                <button onClick={() => scrollToConsult('Gói Đối tác Chiến lược Diamond')} className="btn-daklak-outline" style={{ color: 'var(--forest-green)', borderColor: 'var(--forest-green)', justifyContent: 'center' }}>
-                  Liên hệ Chuyên gia
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 16: CÂU HỎI THƯỜNG GẶP (FAQ ACCORDION)
-            ======================================================== */}
-        <section className="daklak-section">
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'FAQ' : 'Hỏi & Đáp'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Frequently Asked Questions' : 'Câu Hỏi Thường Gặp'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Common inquiries regarding DakLak.today ecosystem features, memberships, and investor services.'
-                  : 'Giải đáp những thắc mắc phổ biến về cơ chế hoạt động, bảo mật dữ liệu và quyền lợi tham gia mạng lưới.'}
-              </p>
-            </div>
-
-            <div className="faq-list">
-              {faqs.map((faq, index) => {
-                const isOpen = activeFaq === index;
-                const questionId = `faq-q-${index}`;
-                const panelId = `faq-panel-${index}`;
-                return (
-                  <div key={index} className="faq-item">
-                    <button 
-                      id={questionId}
-                      className="faq-question"
-                      aria-expanded={isOpen}
-                      aria-controls={panelId}
-                      onClick={() => setActiveFaq(isOpen ? null : index)}
-                    >
-                      <span>{faq.q}</span>
-                      <i className={`ti ti-chevron-${isOpen ? 'up' : 'down'}`} style={{ color: 'var(--bazan-red)' }} />
-                    </button>
-                    {isOpen && (
-                      <div 
-                        id={panelId}
-                        role="region"
-                        aria-labelledby={questionId}
-                        className="faq-answer"
-                      >
-                        {faq.a}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* ========================================================
-            SECTION 17: FORM ĐĂNG KÝ TƯ VẤN & HỢP TÁC ĐẦU TƯ (id="tu-van")
-            ======================================================== */}
-        <section className="daklak-section" id="tu-van" style={{ backgroundColor: '#F0E6DC' }}>
-          <div className="daklak-container">
-            <div className="daklak-section-header">
-              <span className="daklak-section-badge">{currentLang === 'en' ? 'Consultation & Partnership' : 'Đăng Ký Tư Vấn'}</span>
-              <h2 className="daklak-section-title">
-                {currentLang === 'en' ? 'Partner with DakLak.today' : 'Đăng Ký Tư Vấn & Kết Nối Hợp Tác Đầu Tư'}
-              </h2>
-              <p className="daklak-section-desc">
-                {currentLang === 'en'
-                  ? 'Submit your enterprise details or project inquiries. Our investment specialists will contact you within 24 hours.'
-                  : 'Quý doanh nghiệp và nhà đầu tư vui lòng gửi thông tin yêu cầu. Ban xúc tiến đầu tư sẽ liên hệ hỗ trợ trong vòng 24 giờ làm việc.'}
-              </p>
-            </div>
-
-            <div className="consult-form-box">
-              {formSubmitted ? (
-                <div style={{ textAlign: 'center', padding: '30px 10px' }}>
-                  <div style={{ fontSize: '3rem', color: 'var(--forest-green)', marginBottom: '14px' }}>✓</div>
-                  <h3 style={{ fontSize: '1.5rem', color: 'var(--primary-coffee)', marginBottom: '10px' }}>
-                    {currentLang === 'en' ? 'Submission Successful!' : 'Đã Tiếp Nhận Thông Tin Thành Công!'}
-                  </h3>
-                  <p style={{ color: 'var(--text-muted)', maxWidth: '520px', margin: '0 auto 20px', lineHeight: '1.6' }}>
-                    Cảm ơn quý đơn vị đã quan tâm tới hệ sinh thái số Đắk Lắk. Chuyên viên cố vấn sẽ trực tiếp kết nối qua số điện thoại <strong>{formData.phone}</strong>.
+              <div className="ka-place-feature-card">
+                <img 
+                  src="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1000&q=80" 
+                  alt="Đồi Thiên Văn và Đài khí tượng Phù Liễn" 
+                  className="ka-place-bg-img"
+                />
+                <div className="ka-place-overlay"></div>
+                <div className="ka-place-content">
+                  <span className="ka-place-tag" style={{ background: '#5EEAD4' }}>Cảnh quan & Lịch sử</span>
+                  <h3 className="ka-place-title">Đồi Thiên Văn & Đài Khí tượng Phù Liễn</h3>
+                  <p className="ka-place-desc">
+                    “Tìm hiểu cảnh quan, dấu ấn lịch sử và những câu chuyện khoa học, văn hóa gắn với Đồi Thiên Văn.”
                   </p>
-                  <button 
-                    onClick={() => {
-                      setFormSubmitted(false);
-                      setFormData({
-                        fullName: '',
-                        phone: '',
-                        email: '',
-                        city: 'Đắk Lắk',
-                        serviceNeed: 'Đầu tư nông nghiệp công nghệ cao & chế biến sâu',
-                        companyName: '',
-                        notes: '',
-                        agreeTerms: true
-                      });
-                    }}
-                    className="btn-daklak-primary"
-                  >
-                    Gửi yêu cầu khác
-                  </button>
+                  <Link to="/posts?category=Khám%20phá%20Kiến%20An" className="ka-place-link">
+                    <span>Khám phá Đồi Thiên Văn</span>
+                    <i className="ti ti-arrow-right"></i>
+                  </Link>
                 </div>
-              ) : (
-                <form onSubmit={handleConsultSubmit}>
-                  <div className="form-grid-2">
-                    <div className="daklak-form-group">
-                      <label htmlFor="consult-fullName">Họ và tên người liên hệ (*)</label>
+              </div>
+            </div>
+
+            {/* Danh sách bài viết tin tức mới nhất */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#102A43' }}>Bài viết & Câu chuyện Kiến An</h3>
+                <p style={{ fontSize: '0.92rem', color: '#627D98', margin: 0 }}>Văn hóa · Ẩm thực · Con người · Trải nghiệm địa phương</p>
+              </div>
+              <Link to="/posts" style={{ color: '#007F82', fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>Xem tất cả bài viết</span>
+                <i className="ti ti-arrow-right"></i>
+              </Link>
+            </div>
+
+            <div className="ka-posts-grid">
+              {filteredPosts.slice(0, 3).map((post) => (
+                <Link key={post.id} to={`/posts/${post.id}`} className="ka-post-card">
+                  <div className="ka-post-thumb-wrap">
+                    <img 
+                      src={post.image_url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'} 
+                      alt={post.title} 
+                      className="ka-post-thumb"
+                    />
+                    <span className="ka-post-cat-badge">{post.sub_category || post.category}</span>
+                  </div>
+                  <div className="ka-post-body">
+                    <div>
+                      <h4 className="ka-post-title">{post.title}</h4>
+                      <p className="ka-post-summary">{post.summary}</p>
+                    </div>
+                    <div className="ka-post-footer">
+                      <span><i className="ti ti-eye"></i> {post.views || 0} lượt đọc</span>
+                      <span style={{ color: '#007F82', fontWeight: 650 }}>Đọc chi tiết →</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ==============================================================================
+            5. DOANH NGHIỆP VÀ CƠ HỘI HỢP TÁC (Chương 8 Docx)
+            ============================================================================== */}
+        <section className="ka-section" id="doanh-nghiep" style={{ background: '#F4F7FA' }}>
+          <div className="ka-container">
+            <div className="ka-section-header">
+              <span className="ka-section-badge">
+                <i className="ti ti-briefcase"></i> Kết nối kinh tế
+              </span>
+              <h2 className="ka-section-title">
+                Doanh nghiệp Kiến An kết nối để phát triển
+              </h2>
+              <p className="ka-section-desc">
+                “Một không gian để doanh nghiệp, hộ kinh doanh và đơn vị dịch vụ giới thiệu năng lực, tiếp cận khách hàng và tìm kiếm đối tác phù hợp.”
+              </p>
+            </div>
+
+            {/* 4 Nhóm trụ cột */}
+            <div className="ka-biz-pillars-grid">
+              <div className="ka-biz-pillar-item">
+                <div className="ka-biz-pillar-icon"><i className="ti ti-id-badge-2"></i></div>
+                <h4>Hồ sơ doanh nghiệp</h4>
+                <p>Hồ sơ số hóa cho doanh nghiệp và hộ kinh doanh cá thể.</p>
+              </div>
+
+              <div className="ka-biz-pillar-item">
+                <div className="ka-biz-pillar-icon"><i className="ti ti-building-store"></i></div>
+                <h4>Sản phẩm & Dịch vụ</h4>
+                <p>Quảng bá sản phẩm đặc trưng và tiện ích đời sống.</p>
+              </div>
+
+              <div className="ka-biz-pillar-item">
+                <div className="ka-biz-pillar-icon"><i className="ti ti-handshake"></i></div>
+                <h4>Nhu cầu hợp tác</h4>
+                <p>Tìm đối tác kinh doanh, nhà cung cấp và mở rộng thị trường.</p>
+              </div>
+
+              <div className="ka-biz-pillar-item">
+                <div className="ka-biz-pillar-icon"><i className="ti ti-cpu"></i></div>
+                <h4>Kỹ năng & AI</h4>
+                <p>Nâng cao năng lực ứng dụng công nghệ và công cụ AI.</p>
+              </div>
+            </div>
+
+            {/* Danh bạ doanh nghiệp hội viên tiêu biểu */}
+            <div className="ka-members-grid">
+              {featuredMembers.map((member) => (
+                <div key={member.id} className="ka-member-card">
+                  <div>
+                    <div className="ka-member-header">
+                      <img 
+                        src={member.logo_url || '/logo_icon.svg'} 
+                        alt={member.company_name} 
+                        className="ka-member-logo"
+                        onError={(e) => { e.target.src = '/logo_icon.svg'; }}
+                      />
+                      <div>
+                        <h4 className="ka-member-name">{member.company_name}</h4>
+                        <div className="ka-member-sector">{member.sector}</div>
+                      </div>
+                    </div>
+                    <p className="ka-member-desc">{member.description}</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem', color: '#627D98', borderTop: '1px solid rgba(16,42,67,0.08)', paddingTop: '10px' }}>
+                    <span><i className="ti ti-map-pin"></i> {member.address}</span>
+                    <span style={{ color: '#007F82', fontWeight: 700 }}>✓ Đã xác minh</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* 2 Nút hành động chuẩn docx */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap', marginTop: '20px' }}>
+              <Link to="/register" className="ka-btn-primary">
+                <i className="ti ti-user-plus"></i>
+                <span>Đăng ký giới thiệu doanh nghiệp</span>
+              </Link>
+              <a href="#dong-hanh" className="ka-btn-outline" style={{ background: '#102A43', borderColor: '#102A43', color: '#ffffff' }}>
+                <i className="ti ti-send"></i>
+                <span>Gửi nhu cầu hợp tác</span>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ==============================================================================
+            6. SỰ KIỆN VÀ CỘNG ĐỒNG (Chương 9 Docx)
+            ============================================================================== */}
+        <section className="ka-section" id="su-kien" style={{ background: '#FFFFFF' }}>
+          <div className="ka-container">
+            <div className="ka-section-header">
+              <span className="ka-section-badge">
+                <i className="ti ti-calendar"></i> Lịch hoạt động
+              </span>
+              <h2 className="ka-section-title">
+                Gặp gỡ hôm nay mở thêm cơ hội ngày mai
+              </h2>
+              <p className="ka-section-desc">
+                Tham gia các hội thảo chuyển đổi số, sinh hoạt cộng đồng Hồ Hạnh Phúc và diễn đàn kết nối nguồn lực địa phương.
+              </p>
+            </div>
+
+            <div className="ka-events-grid">
+              {eventsList.map((event) => (
+                <div key={event.id} className="ka-event-card">
+                  <img 
+                    src={event.banner_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80'} 
+                    alt={event.title} 
+                    className="ka-event-banner"
+                  />
+                  <div className="ka-event-body">
+                    <div className="ka-event-meta">
+                      <span><i className="ti ti-calendar-time"></i> {event.start_time}</span>
+                      <span>·</span>
+                      <span><i className="ti ti-map-pin"></i> {event.location}</span>
+                    </div>
+                    <h3 className="ka-event-title">{event.title}</h3>
+                    <p className="ka-event-desc">{event.description}</p>
+                    
+                    {/* Countdown Timer */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ fontSize: '0.82rem', color: '#627D98', fontWeight: 650 }}>Đếm ngược sự kiện:</div>
+                      <HomeEventCountdown eventDate={event.start_time} />
+                    </div>
+
+                    <button 
+                      onClick={() => setRegisterModalEvent(event)}
+                      className="ka-btn-primary"
+                      style={{ width: '100%', justifyContent: 'center', padding: '10px' }}
+                    >
+                      <i className="ti ti-ticket"></i>
+                      <span>Đăng ký tham gia / Nhận vé QR</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ==============================================================================
+            7. TRỢ LÝ AI KIẾN AN (Chương 10 Docx: Nền tối, Trái Giới thiệu + Phải Chat)
+            ============================================================================== */}
+        <section className="ka-section dark" id="tro-ly-ai">
+          <div className="ka-container">
+            <div className="ka-ai-assistant-box">
+              {/* Cột trái: Giới thiệu & 4 Câu hỏi gợi ý chuẩn docx */}
+              <div className="ka-ai-bot-left">
+                <span className="ka-section-badge" style={{ marginBottom: '14px' }}>
+                  <i className="ti ti-sparkles"></i> AI Assistant 24/7
+                </span>
+                <h2>Bạn muốn tìm hiểu điều gì về Kiến An?</h2>
+                <p>
+                  “Định hướng trợ lý AI giúp bạn tìm thông tin địa phương, khám phá điểm đến, xem hoạt động và kết nối dịch vụ phù hợp.”
+                </p>
+
+                <div className="ka-ai-prompts-title">
+                  <i className="ti ti-bulb"></i> Câu hỏi gợi ý nhanh:
+                </div>
+                <div className="ka-ai-prompts-list">
+                  {[
+                    'Tôi nên bắt đầu khám phá Kiến An từ đâu?',
+                    'Doanh nghiệp tham gia kienan.today như thế nào?',
+                    'Tìm thông tin hoạt động cộng đồng ở đâu?',
+                    'AI có thể hỗ trợ công việc của tôi ra sao?'
+                  ].map((prompt, idx) => (
+                    <button 
+                      key={idx}
+                      className="ka-ai-prompt-btn"
+                      onClick={() => handleSendAiQuestion(prompt)}
+                    >
+                      <span>{prompt}</span>
+                      <i className="ti ti-arrow-right" style={{ color: '#F4B544' }}></i>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cột phải: Giao diện hội thoại tương tác trực tiếp */}
+              <div className="ka-ai-bot-right">
+                <div className="ka-ai-chat-header">
+                  <div className="ka-ai-chat-avatar">
+                    <i className="ti ti-robot"></i>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#ffffff', fontSize: '1.05rem' }}>Trợ lý AI Kiến An</div>
+                    <div style={{ fontSize: '0.8rem', color: '#5EEAD4' }}>● Sẵn sàng tư vấn thông tin & dữ liệu</div>
+                  </div>
+                </div>
+
+                <div className="ka-ai-chat-body">
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`ka-chat-bubble ${msg.sender}`}>
+                      {msg.text}
+                    </div>
+                  ))}
+                  {chatLoading && (
+                    <div className="ka-chat-bubble bot">
+                      <i className="ti ti-loader animate-spin"></i> Trợ lý AI đang tra cứu tri thức Kiến An...
+                    </div>
+                  )}
+                  <div ref={chatBottomRef} />
+                </div>
+
+                <form onSubmit={(e) => { e.preventDefault(); handleSendAiQuestion(); }} className="ka-ai-chat-form">
+                  <input 
+                    type="text" 
+                    className="ka-ai-chat-input"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Nhập câu hỏi của bạn về Kiến An..."
+                    disabled={chatLoading}
+                  />
+                  <button type="submit" className="ka-ai-chat-send" disabled={chatLoading}>
+                    <i className="ti ti-send"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ==============================================================================
+            8. KÊU GỌI ĐỒNG HÀNH & FORM LIÊN HỆ / XÚC TIẾN (Chương 11 Docx)
+            ============================================================================== */}
+        <section className="ka-section" id="dong-hanh" style={{ background: '#F4F7FA' }}>
+          <div className="ka-container">
+            <div className="ka-consult-grid">
+              {/* Thông tin đơn vị phát triển */}
+              <div className="ka-consult-info">
+                <span className="ka-section-badge">
+                  <i className="ti ti-mail-fast"></i> Hợp tác & Kết nối
+                </span>
+                <h2>Cùng xây dựng một Kiến An kết nối và đổi mới</h2>
+                <p>
+                  “Bạn là doanh nghiệp, đơn vị dịch vụ, tổ chức cộng đồng hay người quan tâm đến Kiến An? Hãy cùng trao đổi cách tham gia, đóng góp nội dung và phát triển những hoạt động có giá trị.”
+                </p>
+
+                <div className="ka-contact-details">
+                  <div className="ka-contact-item">
+                    <div className="ka-contact-icon">
+                      <i className="ti ti-building"></i>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', color: '#627D98' }}>Đơn vị đề xuất phát triển:</div>
+                      <strong>Công ty Cổ phần ADT Quốc Tế</strong>
+                    </div>
+                  </div>
+
+                  <div className="ka-contact-item">
+                    <div className="ka-contact-icon">
+                      <i className="ti ti-phone-call"></i>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', color: '#627D98' }}>Hotline trao đổi trực tiếp:</div>
+                      <a href="tel:0986354152">0986 354 152</a>
+                    </div>
+                  </div>
+
+                  <div className="ka-contact-item">
+                    <div className="ka-contact-icon">
+                      <i className="ti ti-world"></i>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', color: '#627D98' }}>Website chính thức ADT:</div>
+                      <a href="https://www.adtgroup.net" target="_blank" rel="noreferrer">www.adtgroup.net</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form gửi thông tin kết nối (POST /api/leads) */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', padding: '35px', boxShadow: '0 4px 20px rgba(16,42,67,0.06)' }}>
+                {formSubmitted ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#E6F7F7', color: '#007F82', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 20px' }}>
+                      <i className="ti ti-check"></i>
+                    </div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#102A43', marginBottom: '10px' }}>Gửi thông tin thành công!</h3>
+                    <p style={{ color: '#627D98', lineHeight: 1.6, marginBottom: '24px' }}>
+                      Cảm ơn Quý đơn vị đã quan tâm đồng hành cùng <strong>kienan.today</strong>. Bộ phận xúc tiến & hỗ trợ của ADT Quốc Tế sẽ liên hệ lại qua số điện thoại đã cung cấp trong vòng 24 giờ.
+                    </p>
+                    <button 
+                      onClick={() => { setFormSubmitted(false); setFormData({ fullName: '', companyName: '', phone: '', email: '', serviceNeed: 'Giới thiệu doanh nghiệp & Dịch vụ địa phương', notes: '', agreeTerms: true }); }}
+                      className="ka-btn-primary"
+                    >
+                      <span>Gửi thông tin khác</span>
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleConsultSubmit} className="ka-form">
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#102A43', marginBottom: '4px' }}>Đăng ký trao đổi & Đồng hành</h3>
+                    <p style={{ fontSize: '0.88rem', color: '#627D98', marginBottom: '16px' }}>Vui lòng để lại thông tin để nhận phản hồi từ bộ phận phụ trách.</p>
+
+                    <div className="ka-form-group">
+                      <label>Họ và tên (*)</label>
                       <input 
-                        id="consult-fullName"
-                        type="text"
-                        className="daklak-form-input"
-                        placeholder="Ví dụ: Nguyễn Văn An"
+                        type="text" 
+                        className="ka-form-input"
+                        placeholder="Nguyễn Văn A"
                         value={formData.fullName}
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                         required
-                        aria-required="true"
                       />
                     </div>
 
-                    <div className="daklak-form-group">
-                      <label htmlFor="consult-phone">Số điện thoại liên hệ (*)</label>
+                    <div className="ka-form-group">
+                      <label>Đơn vị / Doanh nghiệp (*)</label>
                       <input 
-                        id="consult-phone"
-                        type="tel"
-                        className="daklak-form-input"
-                        placeholder="Ví dụ: 0912 345 678"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        required
-                        aria-required="true"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-grid-2">
-                    <div className="daklak-form-group">
-                      <label htmlFor="consult-email">Email làm việc</label>
-                      <input 
-                        id="consult-email"
-                        type="email"
-                        className="daklak-form-input"
-                        placeholder="Ví dụ: contact@doanhnghiep.vn"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="daklak-form-group">
-                      <label htmlFor="consult-companyName">Tên Doanh nghiệp / Đơn vị (*)</label>
-                      <input 
-                        id="consult-companyName"
-                        type="text"
-                        className="daklak-form-input"
-                        placeholder="Ví dụ: Công ty Cổ phần Nông sản Tây Nguyên"
+                        type="text" 
+                        className="ka-form-input"
+                        placeholder="Tên doanh nghiệp, cơ sở kinh doanh hoặc tổ chức"
                         value={formData.companyName}
                         onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                         required
-                        aria-required="true"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-grid-2">
-                    <div className="daklak-form-group">
-                      <label htmlFor="consult-city">Tỉnh / Thành phố hoạt động</label>
-                      <input 
-                        id="consult-city"
-                        type="text"
-                        className="daklak-form-input"
-                        placeholder="Ví dụ: Đắk Lắk, TP.HCM, Hà Nội..."
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       />
                     </div>
 
-                    <div className="daklak-form-group">
-                      <label htmlFor="consult-serviceNeed">Lĩnh vực quan tâm & nhu cầu hợp tác</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                      <div className="ka-form-group">
+                        <label>Số điện thoại (*)</label>
+                        <input 
+                          type="tel" 
+                          className="ka-form-input"
+                          placeholder="0986..."
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="ka-form-group">
+                        <label>Email</label>
+                        <input 
+                          type="email" 
+                          className="ka-form-input"
+                          placeholder="email@domain.com"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="ka-form-group">
+                      <label>Nhu cầu quan tâm</label>
                       <select 
-                        id="consult-serviceNeed"
-                        className="daklak-form-select"
+                        className="ka-form-select"
                         value={formData.serviceNeed}
                         onChange={(e) => setFormData({ ...formData, serviceNeed: e.target.value })}
                       >
-                        <option value="Đầu tư nông nghiệp công nghệ cao & chế biến sâu">Đầu tư nông nghiệp CNC & chế biến sâu</option>
-                        <option value="Chuỗi giá trị cà phê & nông sản đặc hữu">Chuỗi giá trị cà phê & nông sản đặc hữu</option>
-                        <option value="Thuê đất KCN & Hạ tầng Logistics">Thuê đất KCN & Hạ tầng Logistics</option>
-                        <option value="Du lịch sinh thái & Dịch vụ lưu trú">Du lịch sinh thái & Dịch vụ lưu trú</option>
-                        <option value="Mở Showroom số & Quảng bá sản phẩm OCOP">Mở Showroom số & Quảng bá OCOP</option>
-                        <option value="Tư vấn tiếp cận vốn vay & Quỹ ESG">Tư vấn tiếp cận vốn vay & Quỹ ESG</option>
-                        <option value="Tham gia Mạng lưới Hội viên Doanh nghiệp">Tham gia Mạng lưới Hội viên Doanh nghiệp</option>
+                        <option value="Giới thiệu doanh nghiệp & Dịch vụ địa phương">Giới thiệu doanh nghiệp & Dịch vụ địa phương</option>
+                        <option value="Đăng ký tham gia sự kiện & Hội thảo chuyển đổi số">Đăng ký tham gia sự kiện & Hội thảo chuyển đổi số</option>
+                        <option value="Ứng dụng Trợ lý AI Phường/Xã cho cán bộ & người dân">Ứng dụng Trợ lý AI Phường/Xã cho cán bộ & người dân</option>
+                        <option value="Tìm hiểu giải pháp ORION cho doanh nghiệp">Tìm hiểu giải pháp ORION cho doanh nghiệp</option>
+                        <option value="Trợ lý AI tuyển sinh Edunow cho trường học">Trợ lý AI tuyển sinh Edunow cho trường học</option>
+                        <option value="Đóng góp câu chuyện văn hóa, lịch sử Kiến An">Đóng góp câu chuyện văn hóa, lịch sử Kiến An</option>
                       </select>
                     </div>
-                  </div>
 
-                  <div className="daklak-form-group">
-                    <label htmlFor="consult-notes">Chi tiết nhu cầu & nội dung cần hỗ trợ</label>
-                    <textarea 
-                      id="consult-notes"
-                      rows="3"
-                      className="daklak-form-textarea"
-                      placeholder="Mô tả cụ thể về quy mô dự án, sản phẩm cần hợp tác hoặc câu hỏi dành cho ban xúc tiến..."
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    />
-                  </div>
+                    <div className="ka-form-group">
+                      <label>Nội dung trao đổi</label>
+                      <textarea 
+                        className="ka-form-textarea"
+                        rows="3"
+                        placeholder="Mô tả tóm tắt nhu cầu hoặc đề xuất phối hợp của bạn..."
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      ></textarea>
+                    </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '22px' }}>
-                    <input 
-                      type="checkbox" 
-                      id="agreeTerms" 
-                      checked={formData.agreeTerms} 
-                      onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })} 
-                      required
-                    />
-                    <label htmlFor="agreeTerms" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                      Tôi đồng ý chia sẻ thông tin để Ban xúc tiến DakLak.today liên hệ tư vấn theo chính sách bảo mật.
-                    </label>
-                  </div>
+                    <div className="ka-form-checkbox">
+                      <input 
+                        type="checkbox" 
+                        id="agreeTerms" 
+                        checked={formData.agreeTerms} 
+                        onChange={(e) => setFormData({ ...formData, agreeTerms: e.target.checked })} 
+                        required 
+                      />
+                      <label htmlFor="agreeTerms">Tôi đồng ý để bộ phận xúc tiến kienan.today liên hệ trao đổi thông tin.</label>
+                    </div>
 
-                  <button 
-                    type="submit" 
-                    className="btn-daklak-primary"
-                    disabled={formLoading}
-                    style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: '1.05rem' }}
-                  >
-                    {formLoading ? 'Đang gửi thông tin...' : 'Gửi Yêu Cầu Kết Nối Ngay'}
-                  </button>
-                </form>
-              )}
+                    <button type="submit" className="ka-btn-primary" style={{ justifyContent: 'center', marginTop: '6px' }} disabled={formLoading}>
+                      {formLoading ? 'Đang gửi thông tin...' : 'Gửi đăng ký đồng hành'}
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           </div>
         </section>
       </main>
 
-      {/* QUICK EVENT REGISTRATION MODAL */}
+      {/* Modal đăng ký vé sự kiện nhanh (Bảo toàn 100% tính năng QR code) */}
       {registerModalEvent && (
-        <div className="daklak-modal-overlay" onClick={handleCloseModal}>
-          <div
-            className="daklak-modal-box"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: '560px',
-              width: '100%',
-              padding: 0,
-              borderRadius: '20px',
-              overflow: 'hidden',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.45)',
-              backgroundColor: '#ffffff',
-              position: 'relative'
-            }}
-          >
-            <button
-              type="button"
-              className="daklak-modal-close"
-              onClick={handleCloseModal}
-              style={{
-                position: 'absolute',
-                top: '14px',
-                right: '16px',
-                background: 'rgba(255, 255, 255, 0.25)',
-                border: 'none',
-                color: '#ffffff',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-                cursor: 'pointer',
-                zIndex: 10,
-                transition: 'background 0.2s'
-              }}
-              title="Đóng"
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,27,44,0.75)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', maxWidth: '520px', width: '100%', padding: '30px', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+            <button 
+              onClick={() => { setRegisterModalEvent(null); setRegSuccessData(null); }}
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#627D98' }}
             >
               ✕
             </button>
 
-            {/* TRƯỜNG HỢP: ĐÃ ĐĂNG KÝ THÀNH CÔNG (HIỂN THỊ VÉ / THANH TOÁN) */}
             {regSuccessData ? (
-              Number(regSuccessData.total_amount) > 0 ? (
-                paidFlowStep === 'transfer' ? (
-                  // BƯỚC 1 CỦA SỰ KIỆN CÓ PHÍ: THÔNG TIN CHUYỂN KHOẢN & BẮT BUỘC TẢI ẢNH BILL
-                  <>
-                    <div style={{ background: 'linear-gradient(135deg, #1C0F08 0%, #3B2011 100%)', color: '#ffffff', padding: '1.4rem 1.5rem', textAlign: 'center' }}>
-                      <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(213, 163, 63, 0.25)',
-                        color: 'var(--gong-gold)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 8px',
-                        fontSize: '24px'
-                      }}>
-                        <i className="ti ti-credit-card"></i>
-                      </div>
-                      <h3 style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 4px 0', color: '#FFFFFF' }}>
-                        Thanh Toán & Kích Hoạt Vé
-                      </h3>
-                      <p style={{ fontSize: '12px', opacity: 0.9, margin: 0, color: '#E0D4CA' }}>
-                        {regSuccessData.event_title}
-                      </p>
-                    </div>
-
-                    <div style={{ padding: '1.25rem 1.5rem', maxHeight: '72vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div style={{ fontSize: '12.5px', color: '#334155', backgroundColor: '#F8FAFC', padding: '10px 14px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '3px', border: '1px solid #E2E8F0' }}>
-                        <div><strong>Khách tham dự:</strong> {regSuccessData.full_name} ({regSuccessData.phone})</div>
-                        <div><strong>Số lượng vé:</strong> {regSuccessData.quantity} vé · <strong>Mã đăng ký:</strong> <code style={{ fontWeight: '700', color: '#A84524' }}>{regSuccessData.ticket_code}</code></div>
-                      </div>
-
-                      {/* Khối thanh toán Chuyển khoản VietQR */}
-                      <div style={{ border: '1px solid #FCD34D', backgroundColor: '#FFFBEB', borderRadius: '12px', padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#B45309', fontWeight: '800', fontSize: '14px', marginBottom: '8px' }}>
-                          <i className="ti ti-building-bank"></i>
-                          <span>Thông tin thanh toán chuyển khoản</span>
-                        </div>
-
-                        <div style={{ fontSize: '13px', color: '#78350F', marginBottom: '10px' }}>
-                          Tổng số tiền cần thanh toán:{' '}
-                          <strong style={{ fontSize: '17px', color: '#B45309' }}>
-                            {Number(regSuccessData.total_amount).toLocaleString('vi-VN')} VNĐ
-                          </strong>
-                        </div>
-
-                        {regSuccessData.vietqr_url && (
-                          <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-                            <img
-                              src={regSuccessData.vietqr_url}
-                              alt="VietQR Chuyển khoản"
-                              style={{ maxWidth: '240px', width: '100%', borderRadius: '8px', border: '1px solid #FDE68A', boxShadow: '0 2px 6px rgba(0,0,0,0.05)' }}
-                            />
-                            <div style={{ fontSize: '11px', color: '#78350F', marginTop: '4px' }}>
-                              Quét mã VietQR bằng ứng dụng ngân hàng bất kỳ để chuyển khoản tự động
-                            </div>
-                          </div>
-                        )}
-
-                        <div style={{ fontSize: '12px', color: '#451A03', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <div><strong>Ngân hàng:</strong> {regSuccessData.bank_info?.bank_name} ({regSuccessData.bank_info?.bank_branch})</div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FEF3C7', padding: '6px 8px', borderRadius: '6px' }}>
-                            <span><strong>Số tài khoản:</strong> <code style={{ fontSize: '13px', fontWeight: '800' }}>{regSuccessData.bank_info?.account_number}</code></span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(regSuccessData.bank_info?.account_number, 'bank')}
-                              style={{ padding: '3px 8px', fontSize: '11px', backgroundColor: '#D97706', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
-                            >
-                              {copiedBank ? 'Đã chép!' : 'Sao chép'}
-                            </button>
-                          </div>
-                          <div><strong>Chủ tài khoản:</strong> {regSuccessData.bank_info?.account_holder}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FEF3C7', padding: '6px 8px', borderRadius: '6px' }}>
-                            <span><strong>Nội dung CK:</strong> <code style={{ fontSize: '12px', fontWeight: '800', color: '#B45309' }}>{regSuccessData.payment_note}</code></span>
-                            <button
-                              type="button"
-                              onClick={() => copyToClipboard(regSuccessData.payment_note, 'note')}
-                              style={{ padding: '3px 8px', fontSize: '11px', backgroundColor: '#D97706', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
-                            >
-                              {copiedNote ? 'Đã chép!' : 'Sao chép'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* BẮT BUỘC TẢI ẢNH CHUYỂN KHOẢN */}
-                      <div style={{
-                        border: '2px dashed #A84524',
-                        backgroundColor: '#FDF7F4',
-                        borderRadius: '12px',
-                        padding: '1.25rem',
-                        textAlign: 'center'
-                      }}>
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: '#A84524', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          <i className="ti ti-upload"></i>
-                          <span>Tải ảnh chuyển khoản thành công (Bắt buộc) *</span>
-                        </div>
-                        <p style={{ fontSize: '11.5px', color: '#73311A', margin: '0 0 12px', lineHeight: 1.4 }}>
-                          Sau khi chuyển khoản qua ngân hàng, quý khách vui lòng tải ảnh biên lai giao dịch thành công để Ban tổ chức kiểm duyệt và kích hoạt vé.
-                        </p>
-
-                        {proofPreview ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ maxHeight: '180px', width: '100%', borderRadius: '8px', overflow: 'hidden', border: '1px solid #E2E8F0', backgroundColor: '#ffffff' }}>
-                              <img src={proofPreview} alt="Ảnh chuyển khoản" style={{ width: '100%', maxHeight: '180px', objectFit: 'contain' }} />
-                            </div>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <span style={{ fontSize: '11px', color: '#A84524', fontWeight: '600' }}>✓ Đã chọn ảnh: {proofFile?.name}</span>
-                              <label style={{ fontSize: '11px', color: '#2563EB', cursor: 'pointer', textDecoration: 'underline', fontWeight: '600' }}>
-                                Đổi ảnh khác
-                                <input type="file" accept="image/*" onChange={handleProofChange} style={{ display: 'none' }} />
-                              </label>
-                            </div>
-                          </div>
-                        ) : (
-                          <label style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '1.5rem',
-                            border: '1px dashed #A84524',
-                            borderRadius: '8px',
-                            backgroundColor: '#ffffff',
-                            cursor: 'pointer',
-                            gap: '6px'
-                          }}>
-                            <i className="ti ti-photo-plus" style={{ fontSize: '30px', color: '#A84524' }}></i>
-                            <span style={{ fontSize: '12.5px', fontWeight: '700', color: '#A84524' }}>Nhấn vào đây để tải ảnh bill chuyển khoản</span>
-                            <span style={{ fontSize: '11px', color: '#64748B' }}>Hỗ trợ định dạng JPG, PNG, WEBP (Tối đa 20MB)</span>
-                            <input type="file" accept="image/*" onChange={handleProofChange} style={{ display: 'none' }} />
-                          </label>
-                        )}
-                      </div>
-                    </div>
-
-                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F8FAFC' }}>
-                      <button
-                        type="button"
-                        onClick={handleCloseModal}
-                        style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #CBD5E1', backgroundColor: '#ffffff', color: '#64748B', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer' }}
-                      >
-                        Đóng
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSubmitPaymentProof}
-                        disabled={!proofFile || uploadingProof}
-                        style={{
-                          padding: '9px 22px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: proofFile ? 'linear-gradient(135deg, #A84524 0%, #7E2D13 100%)' : '#94A3B8',
-                          color: '#ffffff',
-                          fontSize: '13px',
-                          fontWeight: '700',
-                          cursor: proofFile && !uploadingProof ? 'pointer' : 'not-allowed',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
-                        {uploadingProof ? (<><i className="ti ti-loader animate-spin"></i> Đang gửi ảnh...</>) : (<><i className="ti ti-send"></i> Gửi ảnh xác nhận thanh toán</>)}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  // BƯỚC 2: CHỜ DUYỆT
-                  <>
-                    <div style={{ background: 'linear-gradient(135deg, #1C0F08 0%, #3B2011 100%)', color: '#ffffff', padding: '1.5rem 1.25rem', textAlign: 'center' }}>
-                      <div style={{ width: '52px', height: '52px', borderRadius: '50%', backgroundColor: 'rgba(213, 163, 63, 0.25)', color: 'var(--gong-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', fontSize: '26px' }}>
-                        <i className="ti ti-clock"></i>
-                      </div>
-                      <h3 style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 4px 0', color: '#FFFFFF' }}>Đã Gửi Thông Tin Thanh Toán!</h3>
-                      <p style={{ fontSize: '12.5px', opacity: 0.9, margin: 0, color: '#E0D4CA' }}>{regSuccessData.event_title}</p>
-                    </div>
-                    <div style={{ padding: '1.5rem', maxHeight: '72vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div style={{ backgroundColor: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '12px', padding: '1.25rem', textAlign: 'center' }}>
-                        <span style={{ display: 'inline-block', backgroundColor: '#F59E0B', color: '#ffffff', fontSize: '11.5px', fontWeight: '800', padding: '3px 12px', borderRadius: '12px', textTransform: 'uppercase', marginBottom: '8px' }}>
-                          Trạng thái: Chờ duyệt thanh toán
-                        </span>
-                        <div style={{ fontSize: '14px', fontWeight: '800', color: '#92400E', marginBottom: '6px' }}>
-                          Ban tổ chức đang kiểm tra và đối soát chuyển khoản
-                        </div>
-                        <p style={{ fontSize: '12.5px', color: '#78350F', margin: 0, lineHeight: 1.5 }}>
-                          Chứng từ chuyển khoản của bạn đã được tiếp nhận thành công. Sau khi xác nhận hợp lệ, Ban tổ chức sẽ kích hoạt vé tham dự chính thức.
-                        </p>
-                      </div>
-                      <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '12px 14px', fontSize: '12.5px', color: '#334155', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div><strong>Mã đăng ký:</strong> <code style={{ fontWeight: '700', color: '#0F172A' }}>{regSuccessData.ticket_code}</code></div>
-                        <div><strong>Khách tham dự:</strong> {regSuccessData.full_name}</div>
-                        <div><strong>Số lượng:</strong> {regSuccessData.quantity} vé · <strong>Tổng tiền:</strong> {Number(regSuccessData.total_amount).toLocaleString('vi-VN')} VNĐ</div>
-                      </div>
-                      {accountNotice && (
-                        <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1E40AF', padding: '10px 14px', borderRadius: '8px', fontSize: '12px', lineHeight: 1.45 }}>
-                          <strong>Tài khoản theo dõi:</strong> {accountNotice}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', backgroundColor: '#F8FAFC' }}>
-                      {isLoggedIn ? (
-                        <Link to="/member-dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#A84524', color: '#ffffff', borderRadius: '8px', fontSize: '12.5px', fontWeight: '700', textDecoration: 'none' }}>
-                          <i className="ti ti-ticket"></i> Vào Dashboard theo dõi
-                        </Link>
-                      ) : (
-                        <Link to="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#A84524', color: '#ffffff', borderRadius: '8px', fontSize: '12.5px', fontWeight: '700', textDecoration: 'none' }}>
-                          <i className="ti ti-login"></i> Đăng nhập Dashboard
-                        </Link>
-                      )}
-                      <button type="button" onClick={handleCloseModal} style={{ padding: '8px 24px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #1C0F08 0%, #3B2011 100%)', color: '#ffffff', fontSize: '12.5px', fontWeight: '700', cursor: 'pointer' }}>
-                        Hoàn tất
-                      </button>
-                    </div>
-                  </>
-                )
-              ) : (
-                // SỰ KIỆN MIỄN PHÍ: HIỂN THỊ MÃ VÉ VÀ QR CODE
-                <>
-                  <div style={{ background: 'linear-gradient(135deg, #1C0F08 0%, #3B2011 100%)', color: '#ffffff', padding: '1.4rem 1.5rem', textAlign: 'center' }}>
-                    <div style={{ width: '46px', height: '46px', borderRadius: '50%', backgroundColor: 'rgba(213, 163, 63, 0.25)', color: 'var(--gong-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', fontSize: '24px' }}>
-                      <i className="ti ti-check"></i>
-                    </div>
-                    <h3 style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 4px 0', color: '#FFFFFF' }}>Đăng Ký Tham Gia Thành Công!</h3>
-                    <p style={{ fontSize: '12px', opacity: 0.9, margin: 0, color: '#E0D4CA' }}>{regSuccessData.event_title}</p>
-                  </div>
-
-                  <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {/* Thẻ Vé Điện Tử */}
-                    <div style={{ border: '2px dashed #A84524', borderRadius: '12px', padding: '1.25rem', backgroundColor: '#FDF7F4', textAlign: 'center' }}>
-                      <div style={{ fontSize: '11px', textTransform: 'uppercase', color: '#A84524', fontWeight: '700', letterSpacing: '0.6px' }}>
-                        MÃ VÉ THAM DỰ CHÍNH THỨC
-                      </div>
-                      <div style={{ fontSize: '22px', fontWeight: '900', color: '#1C0F08', letterSpacing: '1px', margin: '4px 0 10px' }}>
-                        {regSuccessData.ticket_code}
-                      </div>
-
-                      {regSuccessData.qr_image ? (
-                        <div style={{ width: '180px', height: '180px', margin: '0 auto', backgroundColor: '#ffffff', padding: '8px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                          <img src={regSuccessData.qr_image} alt="Mã QR Check-in" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        </div>
-                      ) : (
-                        <div style={{ width: '180px', height: '180px', margin: '0 auto', backgroundColor: '#ffffff', padding: '8px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                          <img src={`/api/events/qr/${encodeURIComponent(regSuccessData.ticket_code)}`} alt="Mã QR Check-in" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        </div>
-                      )}
-                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '8px' }}>
-                        Vui lòng xuất trình mã QR này tại quầy lễ tân để check-in vào sự kiện.
-                      </div>
-                    </div>
-
-                    {/* Thông tin người tham dự */}
-                    <div style={{ fontSize: '12.5px', color: '#334155', backgroundColor: '#F8FAFC', padding: '10px 14px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '4px', border: '1px solid #E2E8F0' }}>
-                      <div><strong>Người tham dự:</strong> {regSuccessData.full_name}</div>
-                      <div><strong>Số điện thoại:</strong> {regSuccessData.phone}</div>
-                      <div><strong>Số lượng:</strong> {regSuccessData.quantity} vé (Miễn phí)</div>
-                      {regSuccessData.company && <div><strong>Đơn vị:</strong> {regSuccessData.company}</div>}
-                    </div>
-
-                    {accountNotice && (
-                      <div style={{ backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1E40AF', padding: '10px 14px', borderRadius: '8px', fontSize: '12px', lineHeight: 1.45, display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                        <i className="ti ti-check-circle" style={{ fontSize: '18px', color: '#1E63E9', flexShrink: 0, marginTop: '2px' }}></i>
-                        <div>
-                          <strong>Tài khoản theo dõi vé:</strong> {accountNotice} Sau khi Ban quản trị duyệt hồ sơ, bạn có thể đăng nhập bằng tài khoản này để xem và quản lý vé trong Dashboard thành viên.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', backgroundColor: '#F8FAFC' }}>
-                    <button
-                      type="button"
-                      onClick={() => window.print()}
-                      style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #CBD5E1', backgroundColor: '#ffffff', color: '#334155', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-                    >
-                      <i className="ti ti-printer"></i> In vé
-                    </button>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      {isLoggedIn ? (
-                        <Link to="/member-dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#A84524', color: '#ffffff', borderRadius: '8px', fontSize: '12.5px', fontWeight: '700', textDecoration: 'none' }}>
-                          <i className="ti ti-ticket"></i> Vào Dashboard
-                        </Link>
-                      ) : (
-                        <Link to="/login" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#A84524', color: '#ffffff', borderRadius: '8px', fontSize: '12.5px', fontWeight: '700', textDecoration: 'none' }}>
-                          <i className="ti ti-login"></i> Đăng nhập
-                        </Link>
-                      )}
-                      <button type="button" onClick={handleCloseModal} style={{ padding: '8px 24px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #1C0F08 0%, #3B2011 100%)', color: '#ffffff', fontSize: '12.5px', fontWeight: '700', cursor: 'pointer' }}>
-                        Hoàn tất
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '48px', color: '#007F82', marginBottom: '10px' }}>✓</div>
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#102A43', marginBottom: '10px' }}>Đăng ký vé thành công!</h3>
+                <p style={{ color: '#627D98', fontSize: '0.95rem', marginBottom: '16px' }}>Mã vé của bạn: <strong style={{ color: '#007F82' }}>{regSuccessData.ticket_code}</strong></p>
+                {regSuccessData.qr_code && (
+                  <img src={regSuccessData.qr_code} alt="QR Code" style={{ width: '180px', height: '180px', margin: '0 auto 16px', display: 'block', border: '1px solid #E2E8F0', borderRadius: '8px' }} />
+                )}
+                <p style={{ fontSize: '0.85rem', color: '#627D98' }}>Vui lòng lưu lại mã vé hoặc ảnh QR để đối soát khi check-in tại sự kiện.</p>
+                <button onClick={() => { setRegisterModalEvent(null); setRegSuccessData(null); }} className="ka-btn-primary" style={{ marginTop: '16px' }}>
+                  Đóng cửa sổ
+                </button>
+              </div>
             ) : (
-              // FORM ĐĂNG KÝ VÉ (CHƯA ĐĂNG KÝ)
-              <>
-                <div style={{ background: 'linear-gradient(135deg, #1C0F08 0%, #3B2011 100%)', color: '#ffffff', padding: '1.4rem 1.5rem', textAlign: 'left' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--gong-gold)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                    ĐĂNG KÝ VÉ NHANH
-                  </span>
-                  <h3 style={{ fontSize: '18px', color: '#FFFFFF', margin: '4px 0 6px', fontWeight: '800', lineHeight: 1.3 }}>
-                    {registerModalEvent.title}
-                  </h3>
-                  <p style={{ fontSize: '12px', color: '#E0D4CA', margin: 0 }}>
-                    {Number(registerModalEvent.is_paid) === 1 && Number(registerModalEvent.price) > 0
-                      ? `Giá vé: ${Number(registerModalEvent.price).toLocaleString('vi-VN')} VNĐ / vé • Chuyển khoản VietQR tiện lợi`
-                      : 'Vé tham gia: Miễn phí (Free Pass) • Nhận mã QR tức thời.'}
-                  </p>
+              <form onSubmit={handleQuickRegisterSubmit} className="ka-form">
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#102A43', marginBottom: '4px' }}>Đăng ký tham dự sự kiện</h3>
+                <p style={{ fontSize: '0.88rem', color: '#007F82', fontWeight: 700, marginBottom: '16px' }}>{registerModalEvent.title}</p>
+
+                <div className="ka-form-group">
+                  <label>Họ và tên (*)</label>
+                  <input 
+                    type="text" 
+                    className="ka-form-input" 
+                    value={regForm.fullName} 
+                    onChange={e => setRegForm({ ...regForm, fullName: e.target.value })} 
+                    required 
+                  />
                 </div>
 
-                <div style={{ padding: '1.25rem 1.5rem', maxHeight: '72vh', overflowY: 'auto' }}>
-                  <form onSubmit={handleQuickRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    
-                    {/* Họ và tên */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                        Họ và tên (*)
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Nguyễn Văn An"
-                        value={regForm.fullName}
-                        onChange={(e) => setRegForm(prev => ({ ...prev, fullName: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid #CBD5E1',
-                          fontSize: '13px',
-                          outline: 'none',
-                          backgroundColor: '#F8FAFC'
-                        }}
-                      />
-                    </div>
-
-                    {/* Số điện thoại */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                        Số điện thoại (*)
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="0912 345 678"
-                        value={regForm.phone}
-                        onChange={(e) => {
-                          setRegForm(prev => ({ ...prev, phone: e.target.value }));
-                          if (accountWarning) setAccountWarning('');
-                        }}
-                        onBlur={() => {
-                          if (!isActuallyLoggedIn) {
-                            verifyAccountNotExists(regForm.phone, regForm.email, regForm.createAccount ? regForm.accountLogin : '');
-                          }
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid #CBD5E1',
-                          fontSize: '13px',
-                          outline: 'none',
-                          backgroundColor: '#F8FAFC'
-                        }}
-                      />
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                        Email (để nhận vé điện tử)
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="email@example.com"
-                        value={regForm.email}
-                        onChange={(e) => {
-                          setRegForm(prev => ({ ...prev, email: e.target.value }));
-                          if (accountWarning) setAccountWarning('');
-                        }}
-                        onBlur={() => {
-                          if (!isActuallyLoggedIn) {
-                            verifyAccountNotExists(regForm.phone, regForm.email, regForm.createAccount ? regForm.accountLogin : '');
-                          }
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid #CBD5E1',
-                          fontSize: '13px',
-                          outline: 'none',
-                          backgroundColor: '#F8FAFC'
-                        }}
-                      />
-                    </div>
-
-                    {/* Tên đơn vị / Doanh nghiệp */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                        Tên đơn vị / Doanh nghiệp
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Công ty Cổ phần / Hợp tác xã..."
-                        value={regForm.company}
-                        onChange={(e) => setRegForm(prev => ({ ...prev, company: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid #CBD5E1',
-                          fontSize: '13px',
-                          outline: 'none',
-                          backgroundColor: '#F8FAFC'
-                        }}
-                      />
-                    </div>
-
-                    {/* Số lượng vé */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
-                        Số lượng vé tham gia
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={regForm.quantity}
-                        onChange={(e) => setRegForm(prev => ({ ...prev, quantity: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1px solid #CBD5E1',
-                          fontSize: '13px',
-                          outline: 'none',
-                          backgroundColor: '#F8FAFC'
-                        }}
-                      />
-                    </div>
-
-                    {/* Checkbox tạo tài khoản HOẶC Thông báo đã đăng nhập */}
-                    {isActuallyLoggedIn ? (
-                      <div style={{
-                        padding: '10px 14px',
-                        backgroundColor: '#EFF6FF',
-                        border: '1px solid #BFDBFE',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        marginTop: '4px'
-                      }}>
-                        <div style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '50%',
-                          backgroundColor: '#DBEAFE',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#1E40AF',
-                          flexShrink: 0
-                        }}>
-                          <i className="ti ti-user-check" style={{ fontSize: '16px' }}></i>
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#1E40AF', lineHeight: 1.4 }}>
-                          Tài khoản: <strong>{effectiveUser?.name || effectiveUser?.username || effectiveUser?.email}</strong>
-                          <div style={{ fontSize: '11px', color: '#1E3A8A' }}>Vé đăng ký sẽ tự động gán vào tài khoản này để theo dõi.</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Checkbox: Tạo tài khoản để theo dõi vé */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                          <input
-                            type="checkbox"
-                            id="chkHomeCreateAcc"
-                            checked={regForm.createAccount}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setRegForm(prev => ({
-                                ...prev,
-                                createAccount: checked,
-                                accountLogin: checked && !prev.accountLogin ? (prev.email || prev.phone) : prev.accountLogin
-                              }));
-                              if (checked) {
-                                verifyAccountNotExists(regForm.phone, regForm.email, regForm.email || regForm.phone);
-                              }
-                            }}
-                            style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#A84524' }}
-                          />
-                          <label htmlFor="chkHomeCreateAcc" style={{ fontSize: '12.5px', fontWeight: '600', color: '#334155', cursor: 'pointer' }}>
-                            Tạo tài khoản để theo dõi vé
-                          </label>
-                        </div>
-
-                        {/* Hiển thị 3 ô khi tích chọn tạo tài khoản */}
-                        {regForm.createAccount && (
-                          <div style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '8px',
-                            padding: '10px 12px',
-                            backgroundColor: '#EFF6FF',
-                            border: '1px solid #BFDBFE',
-                            borderRadius: '8px',
-                            marginTop: '2px'
-                          }}>
-                            <div style={{ fontSize: '11px', color: '#1E40AF', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <i className="ti ti-user-plus"></i>
-                              <span>Thiết lập tài khoản thành viên:</span>
-                            </div>
-
-                            {/* Ô 1: Tài khoản (Email hoặc Số điện thoại) */}
-                            <div>
-                              <input
-                                type="text"
-                                required={regForm.createAccount}
-                                placeholder="Tài khoản (Email hoặc Số điện thoại) *"
-                                value={regForm.accountLogin}
-                                onChange={(e) => {
-                                  setRegForm(prev => ({ ...prev, accountLogin: e.target.value }));
-                                  if (accountWarning) setAccountWarning('');
-                                }}
-                                onBlur={() => {
-                                  if (!isActuallyLoggedIn) {
-                                    verifyAccountNotExists(regForm.phone, regForm.email, regForm.accountLogin);
-                                  }
-                                }}
-                                style={{
-                                  width: '100%',
-                                  padding: '8px 10px',
-                                  borderRadius: '6px',
-                                  border: '1px solid #93C5FD',
-                                  fontSize: '12.5px',
-                                  outline: 'none',
-                                  backgroundColor: '#ffffff'
-                                }}
-                              />
-                            </div>
-
-                            {/* Ô 2: Mật khẩu */}
-                            <div style={{ position: 'relative' }}>
-                              <input
-                                type={showPassword ? 'text' : 'password'}
-                                required={regForm.createAccount}
-                                placeholder="Mật khẩu (tối thiểu 6 ký tự) *"
-                                value={regForm.accountPassword}
-                                onChange={(e) => setRegForm(prev => ({ ...prev, accountPassword: e.target.value }))}
-                                style={{
-                                  width: '100%',
-                                  padding: '8px 32px 8px 10px',
-                                  borderRadius: '6px',
-                                  border: '1px solid #93C5FD',
-                                  fontSize: '12.5px',
-                                  outline: 'none',
-                                  backgroundColor: '#ffffff'
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(p => !p)}
-                                style={{
-                                  position: 'absolute',
-                                  right: '8px',
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  background: 'none',
-                                  border: 'none',
-                                  color: '#64748B',
-                                  cursor: 'pointer',
-                                  padding: '2px',
-                                  fontSize: '14px'
-                                }}
-                                title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                              >
-                                <i className={showPassword ? "ti ti-eye-off" : "ti ti-eye"}></i>
-                              </button>
-                            </div>
-
-                            {/* Ô 3: Xác nhận mật khẩu */}
-                            <div>
-                              <input
-                                type={showPassword ? 'text' : 'password'}
-                                required={regForm.createAccount}
-                                placeholder="Xác nhận mật khẩu *"
-                                value={regForm.accountConfirmPassword}
-                                onChange={(e) => setRegForm(prev => ({ ...prev, accountConfirmPassword: e.target.value }))}
-                                style={{
-                                  width: '100%',
-                                  padding: '8px 10px',
-                                  borderRadius: '6px',
-                                  border: '1px solid #93C5FD',
-                                  fontSize: '12.5px',
-                                  outline: 'none',
-                                  backgroundColor: '#ffffff'
-                                }}
-                              />
-                            </div>
-
-                            <div style={{ fontSize: '10.5px', color: '#1E40AF', lineHeight: 1.35 }}>
-                              * Hệ thống sẽ tự động tạo tài khoản như đăng ký thành viên (các trường bắt buộc khác sẽ để mặc định là "Cần bổ sung"). Sau khi admin duyệt, bạn có thể đăng nhập vào để cập nhật thông tin.
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Cảnh báo nếu Email hoặc SĐT đã có tài khoản trên hệ thống */}
-                    {accountWarning && (
-                      <div style={{
-                        backgroundColor: '#FEF2F2',
-                        border: '1px solid #FECACA',
-                        color: '#991B1B',
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        lineHeight: 1.45,
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px',
-                        marginTop: '4px'
-                      }}>
-                        <i className="ti ti-alert-triangle" style={{ fontSize: '16px', color: '#DC2626', flexShrink: 0, marginTop: '2px' }}></i>
-                        <div>
-                          <div style={{ fontWeight: '600' }}>{accountWarning}</div>
-                          <div style={{ marginTop: '4px', fontSize: '11.5px', color: '#B91C1C' }}>
-                            👉 <Link to="/login" style={{ color: '#DC2626', fontWeight: '700', textDecoration: 'underline' }}>Đăng nhập tài khoản tại đây</Link> hoặc nhập Email / SĐT khác hợp lệ.
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Nút Đăng ký ngay */}
-                    <button
-                      type="submit"
-                      disabled={submittingReg || checkingAccount}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        background: 'linear-gradient(135deg, #A84524 0%, #7E2D13 100%)',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        fontWeight: '700',
-                        cursor: submittingReg || checkingAccount ? 'not-allowed' : 'pointer',
-                        marginTop: '8px',
-                        boxShadow: '0 4px 12px rgba(168, 69, 36, 0.35)',
-                        transition: 'transform 0.15s ease, opacity 0.15s'
-                      }}
-                    >
-                      {submittingReg ? 'Đang cấp vé...' : checkingAccount ? 'Đang kiểm tra tài khoản...' : (Number(registerModalEvent?.is_paid) === 1 && Number(registerModalEvent?.price) > 0 ? 'Tiếp tục thanh toán & Đăng ký' : 'Xác nhận & Cấp vé ngay')}
-                    </button>
-
-                    {/* Subtext chú thích */}
-                    <div style={{ fontSize: '11px', color: '#64748B', textAlign: 'center', marginTop: '4px', lineHeight: 1.4 }}>
-                      {Number(registerModalEvent?.is_paid) === 1 && Number(registerModalEvent?.price) > 0
-                        ? 'Sự kiện có phí: Vui lòng chuyển khoản và tải ảnh xác nhận để kích hoạt vé.'
-                        : 'Bạn sẽ nhận được mã QR ngay sau khi hoàn tất đăng ký.'}
-                      {!isLoggedIn && (
-                        <div style={{ marginTop: '2px' }}>
-                          Đã có tài khoản?{' '}
-                          <Link to="/login" style={{ color: '#D97706', textDecoration: 'none', fontWeight: '600' }}>
-                            Tra cứu tại đây
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-
-                  </form>
+                <div className="ka-form-group">
+                  <label>Số điện thoại (*)</label>
+                  <input 
+                    type="tel" 
+                    className="ka-form-input" 
+                    value={regForm.phone} 
+                    onChange={e => setRegForm({ ...regForm, phone: e.target.value })} 
+                    required 
+                  />
                 </div>
-              </>
+
+                <div className="ka-form-group">
+                  <label>Email (Nhận vé điện tử)</label>
+                  <input 
+                    type="email" 
+                    className="ka-form-input" 
+                    value={regForm.email} 
+                    onChange={e => setRegForm({ ...regForm, email: e.target.value })} 
+                  />
+                </div>
+
+                <div className="ka-form-group">
+                  <label>Số lượng vé</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="10" 
+                    className="ka-form-input" 
+                    value={regForm.quantity} 
+                    onChange={e => setRegForm({ ...regForm, quantity: parseInt(e.target.value) || 1 })} 
+                  />
+                </div>
+
+                <button type="submit" className="ka-btn-primary" style={{ justifyContent: 'center', marginTop: '10px' }} disabled={submittingReg}>
+                  {submittingReg ? 'Đang xuất vé...' : 'Xác nhận đăng ký'}
+                </button>
+              </form>
             )}
           </div>
         </div>

@@ -1,7 +1,7 @@
 {
-  "name": "daklak-today",
+  "name": "kienan-today",
   "version": "2.0.0",
-  "description": "DakLak.today — Cổng thông tin, dữ liệu và kết nối đầu tư Đắk Lắk",
+  "description": "kienan.today — Nền tảng thông tin, dữ liệu và kết nối cộng đồng, doanh nghiệp Kiến An tích hợp AI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

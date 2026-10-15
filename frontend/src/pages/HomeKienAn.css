@@ -1,0 +1,1360 @@
+/* ==============================================================================
+   KIENAN.TODAY — HOMEPAGE PREMIUM CSS SYSTEM
+   Design Palette: Deep Navy (#102A43), Teal Cyan (#007F82), ADT Red (#D62839), Warm Gold (#F4B544)
+   Specifications: Based on THIET KE LANDING PAGE KIENAN & KienAn Today Project
+   ============================================================================== */
+
+.kienan-home {
+  --navy-dark: #0A1B2C;
+  --navy-deep: #06111C;
+  --navy-primary: #102A43;
+  --navy-surface: #1E3A56;
+  --teal-primary: #007F82;
+  --teal-hover: #006668;
+  --teal-light: #E6F7F7;
+  --teal-glow: rgba(0, 127, 130, 0.35);
+  --brand-red: #D62839;
+  --brand-red-hover: #B81D2D;
+  --warm-gold: #F4B544;
+  --warm-gold-light: #FCD34D;
+  --warm-gold-glow: rgba(244, 181, 68, 0.35);
+  --bg-light: #F4F7FA;
+  --bg-card: #FFFFFF;
+  --text-dark: #102A43;
+  --text-body: #334E68;
+  --text-muted: #627D98;
+  --white: #FFFFFF;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 4px 15px rgba(16, 42, 67, 0.06);
+  --shadow-md: 0 10px 30px rgba(16, 42, 67, 0.1);
+  --shadow-lg: 0 20px 45px rgba(16, 42, 67, 0.16);
+  --transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  color: var(--text-dark);
+  background-color: var(--bg-light);
+  line-height: 1.6;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* --- COMMON SECTION STYLING --- */
+.ka-section {
+  padding: 85px 20px;
+  position: relative;
+}
+
+.ka-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.ka-section-header {
+  text-align: center;
+  max-width: 860px;
+  margin: 0 auto 50px;
+}
+
+.ka-section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--teal-primary);
+  background: var(--teal-light);
+  padding: 6px 16px;
+  border-radius: 30px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(0, 127, 130, 0.2);
+}
+
+.ka-section-title {
+  font-size: clamp(1.85rem, 3.4vw, 2.6rem);
+  color: var(--navy-primary);
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.ka-section-desc {
+  font-size: 1.08rem;
+  color: var(--text-body);
+  line-height: 1.7;
+}
+
+/* Dark mode variations for sections */
+.ka-section.dark {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-primary) 100%);
+  color: var(--white);
+}
+
+.ka-section.dark .ka-section-badge {
+  background: rgba(244, 181, 68, 0.15);
+  color: var(--warm-gold);
+  border: 1px solid rgba(244, 181, 68, 0.4);
+}
+
+.ka-section.dark .ka-section-title {
+  color: var(--white);
+}
+
+.ka-section.dark .ka-section-desc {
+  color: #CBD5E1;
+}
+
+/* ==============================================================================
+   1. HERO SECTION
+   ============================================================================== */
+.ka-hero {
+  position: relative;
+  min-height: 82vh;
+  display: flex;
+  align-items: center;
+  padding: 80px 20px 90px;
+  background: linear-gradient(135deg, #0A1B2C 0%, #102A43 70%, #004D50 100%);
+  color: var(--white);
+  overflow: hidden;
+}
+
+.ka-hero-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 80% 20%, rgba(0, 127, 130, 0.28) 0%, transparent 55%),
+    radial-gradient(circle at 20% 80%, rgba(244, 181, 68, 0.15) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(10, 27, 44, 0.7) 0%, rgba(10, 27, 44, 0.95) 100%);
+  z-index: 1;
+}
+
+.ka-hero-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.35;
+  z-index: 2;
+}
+
+.ka-hero-container {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 50px;
+  align-items: center;
+}
+
+.ka-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(244, 181, 68, 0.4);
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 750;
+  letter-spacing: 1.5px;
+  color: var(--warm-gold);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+}
+
+.ka-hero-title {
+  font-size: clamp(2.3rem, 4.4vw, 3.6rem);
+  font-weight: 900;
+  line-height: 1.18;
+  color: var(--white);
+  letter-spacing: -0.03em;
+  margin-bottom: 22px;
+}
+
+.ka-hero-title .highlight-teal {
+  color: #5EEAD4;
+  background: linear-gradient(120deg, #5EEAD4 0%, #00A896 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.ka-hero-title .highlight-gold {
+  color: var(--warm-gold);
+}
+
+.ka-hero-desc {
+  font-size: 1.18rem;
+  line-height: 1.7;
+  color: #E2E8F0;
+  margin-bottom: 32px;
+  max-width: 620px;
+}
+
+.ka-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 36px;
+}
+
+.ka-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #00A896 0%, #007F82 100%);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 14px 30px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px var(--teal-glow);
+  transition: var(--transition);
+}
+
+.ka-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 127, 130, 0.5);
+  background: linear-gradient(135deg, #00BFA8 0%, #006E70 100%);
+}
+
+.ka-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 14px 28px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: var(--transition);
+}
+
+.ka-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: var(--warm-gold);
+  color: var(--warm-gold) !important;
+  transform: translateY(-2px);
+}
+
+.ka-hero-triad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  color: #CBD5E1;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.ka-hero-triad span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ka-hero-triad .dot {
+  color: var(--warm-gold);
+}
+
+/* Hero Right Visual Card */
+.ka-hero-visual-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(0, 127, 130, 0.4);
+  background: #13283E;
+}
+
+.ka-hero-visual-img {
+  width: 100%;
+  height: 440px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.6s ease;
+}
+
+.ka-hero-visual-card:hover .ka-hero-visual-img {
+  transform: scale(1.04);
+}
+
+.ka-hero-visual-badge {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  padding: 18px 20px;
+  background: rgba(10, 27, 44, 0.88);
+  backdrop-filter: blur(14px);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(244, 181, 68, 0.35);
+}
+
+.ka-hero-visual-badge h4 {
+  font-size: 1.1rem;
+  color: #ffffff;
+  margin-bottom: 4px;
+  font-weight: 750;
+}
+
+.ka-hero-visual-badge p {
+  font-size: 0.88rem;
+  color: #CBD5E1;
+  margin: 0;
+}
+
+/* Hero Search Bar */
+.ka-hero-search {
+  margin-top: 26px;
+  max-width: 600px;
+}
+
+.ka-search-input-group {
+  display: flex;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  border: 2px solid transparent;
+  transition: var(--transition);
+}
+
+.ka-search-input-group:focus-within {
+  border-color: var(--teal-primary);
+  box-shadow: 0 12px 35px var(--teal-glow);
+}
+
+.ka-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 10px 16px;
+  font-size: 1rem;
+  color: var(--navy-primary);
+  background: transparent;
+  font-family: inherit;
+}
+
+.ka-search-btn {
+  background: var(--navy-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 22px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.ka-search-btn:hover {
+  background: var(--teal-primary);
+}
+
+/* ==============================================================================
+   2. SECTION 5: INTRO & 4 CORE VALUES
+   ============================================================================== */
+.ka-intro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 26px;
+  margin-top: 40px;
+}
+
+.ka-intro-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 34px 28px;
+  border: 1px solid rgba(16, 42, 67, 0.08);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.ka-intro-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--teal-primary), var(--warm-gold));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ka-intro-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(0, 127, 130, 0.3);
+}
+
+.ka-intro-card:hover::before {
+  opacity: 1;
+}
+
+.ka-intro-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  background: var(--teal-light);
+  color: var(--teal-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin-bottom: 22px;
+  transition: var(--transition);
+}
+
+.ka-intro-card:hover .ka-intro-icon {
+  background: var(--teal-primary);
+  color: #ffffff;
+  transform: rotate(5deg) scale(1.05);
+}
+
+.ka-intro-card h3 {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--navy-primary);
+  margin-bottom: 12px;
+}
+
+.ka-intro-card p {
+  font-size: 0.98rem;
+  color: var(--text-body);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ==============================================================================
+   3. SECTION 6: BANNER LÀM CHỦ AI & 3 KHỐI GIẢI PHÁP ADT
+   ============================================================================== */
+.ka-ai-banner-wrap {
+  margin: 30px 0 45px;
+}
+
+.ka-ai-banner {
+  background: linear-gradient(135deg, #102A43 0%, #007F82 100%);
+  border-radius: var(--radius-lg);
+  padding: 55px 45px;
+  color: var(--white);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 45px rgba(16, 42, 67, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ka-ai-banner-pattern {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 50%;
+  background: radial-gradient(circle at 70% 50%, rgba(244, 181, 68, 0.2) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.ka-ai-banner-content {
+  position: relative;
+  z-index: 2;
+  max-width: 780px;
+}
+
+.ka-ai-banner-agency {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--warm-gold);
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.ka-ai-banner-title {
+  font-size: clamp(2rem, 3.8vw, 2.85rem);
+  font-weight: 900;
+  line-height: 1.2;
+  color: #ffffff;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.ka-ai-banner-title span {
+  color: var(--warm-gold);
+}
+
+.ka-ai-banner-desc {
+  font-size: 1.15rem;
+  color: #E2E8F0;
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+
+.ka-ai-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--warm-gold);
+  color: var(--navy-dark) !important;
+  font-weight: 800;
+  font-size: 1.02rem;
+  padding: 13px 28px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  box-shadow: 0 8px 20px var(--warm-gold-glow);
+  transition: var(--transition);
+}
+
+.ka-ai-banner-btn:hover {
+  background: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(255, 255, 255, 0.35);
+}
+
+/* 3 Khối giải pháp AI ADT */
+.ka-ai-solutions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+  margin-bottom: 20px;
+}
+
+.ka-ai-solution-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 34px 28px;
+  border: 1.5px solid rgba(16, 42, 67, 0.09);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+  position: relative;
+}
+
+.ka-ai-solution-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 18px 40px rgba(0, 127, 130, 0.16);
+  border-color: var(--teal-primary);
+}
+
+.ka-ai-card-top {
+  margin-bottom: 22px;
+}
+
+.ka-ai-target-badge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: rgba(16, 42, 67, 0.08);
+  color: var(--navy-primary);
+  margin-bottom: 12px;
+}
+
+.ka-ai-secondary-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 750;
+  color: #B91C1C;
+  background: #FEE2E2;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-left: 8px;
+}
+
+.ka-ai-card-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--navy-primary);
+  line-height: 1.3;
+  margin-bottom: 12px;
+}
+
+.ka-ai-card-desc {
+  font-size: 0.98rem;
+  color: var(--text-body);
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+
+.ka-ai-card-features {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--teal-primary);
+  background: var(--teal-light);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.ka-ai-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  color: var(--teal-primary);
+  font-weight: 750;
+  font-size: 0.98rem;
+  padding-top: 14px;
+  border-top: 1px solid rgba(16, 42, 67, 0.08);
+  transition: var(--transition);
+}
+
+.ka-ai-solution-card:hover .ka-ai-card-btn {
+  color: var(--navy-primary);
+  padding-left: 4px;
+}
+
+/* ==============================================================================
+   4. SECTION 7: KHÁM PHÁ KIẾN AN (2 KHỐI ẢNH LỚN + TIN TỨC)
+   ============================================================================== */
+.ka-places-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-bottom: 50px;
+}
+
+.ka-place-feature-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 35px 30px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ka-place-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+  z-index: 1;
+}
+
+.ka-place-feature-card:hover .ka-place-bg-img {
+  transform: scale(1.06);
+}
+
+.ka-place-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(10, 27, 44, 0.15) 0%, rgba(10, 27, 44, 0.88) 80%);
+  z-index: 2;
+}
+
+.ka-place-content {
+  position: relative;
+  z-index: 3;
+  color: #ffffff;
+}
+
+.ka-place-tag {
+  display: inline-block;
+  background: var(--warm-gold);
+  color: var(--navy-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.ka-place-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 10px;
+  line-height: 1.28;
+}
+
+.ka-place-desc {
+  font-size: 1rem;
+  color: #E2E8F0;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.ka-place-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5EEAD4;
+  font-weight: 750;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: var(--transition);
+}
+
+.ka-place-link:hover {
+  color: #ffffff;
+  gap: 12px;
+}
+
+/* Posts Grid */
+.ka-posts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 26px;
+}
+
+.ka-post-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(16, 42, 67, 0.08);
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+
+.ka-post-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(0, 127, 130, 0.3);
+}
+
+.ka-post-thumb-wrap {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  background: #E2E8F0;
+}
+
+.ka-post-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.ka-post-card:hover .ka-post-thumb {
+  transform: scale(1.05);
+}
+
+.ka-post-cat-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: var(--navy-primary);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.ka-post-body {
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.ka-post-title {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: var(--navy-primary);
+  line-height: 1.4;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ka-post-summary {
+  font-size: 0.92rem;
+  color: var(--text-body);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ka-post-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(16, 42, 67, 0.08);
+  padding-top: 12px;
+}
+
+/* ==============================================================================
+   5. SECTION 8: DOANH NGHIỆP & CƠ HỘI HỢP TÁC
+   ============================================================================== */
+.ka-biz-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 45px;
+}
+
+.ka-biz-pillar-item {
+  background: var(--bg-card);
+  padding: 24px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(16, 42, 67, 0.08);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.ka-biz-pillar-item:hover {
+  transform: translateY(-4px);
+  border-color: var(--teal-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.ka-biz-pillar-icon {
+  font-size: 32px;
+  color: var(--teal-primary);
+  margin-bottom: 12px;
+}
+
+.ka-biz-pillar-item h4 {
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: var(--navy-primary);
+  margin-bottom: 6px;
+}
+
+.ka-biz-pillar-item p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* Members Directory Grid */
+.ka-members-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.ka-member-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 26px 22px;
+  border: 1px solid rgba(16, 42, 67, 0.08);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ka-member-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(0, 127, 130, 0.35);
+}
+
+.ka-member-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.ka-member-logo {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: contain;
+  background: #F8FAFC;
+  padding: 4px;
+  border: 1px solid rgba(16, 42, 67, 0.1);
+  flex-shrink: 0;
+}
+
+.ka-member-name {
+  font-size: 1.1rem;
+  font-weight: 750;
+  color: var(--navy-primary);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.ka-member-sector {
+  font-size: 0.85rem;
+  color: var(--teal-primary);
+  font-weight: 650;
+}
+
+.ka-member-desc {
+  font-size: 0.92rem;
+  color: var(--text-body);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+/* ==============================================================================
+   6. SECTION 9: SỰ KIỆN & CỘNG ĐỒNG (COUNTDOWN)
+   ============================================================================== */
+.ka-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 28px;
+}
+
+.ka-event-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(16, 42, 67, 0.08);
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+}
+
+.ka-event-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--teal-primary);
+}
+
+.ka-event-banner {
+  height: 200px;
+  width: 100%;
+  object-fit: cover;
+}
+
+.ka-event-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.ka-event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--teal-primary);
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+
+.ka-event-title {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--navy-primary);
+  line-height: 1.35;
+  margin-bottom: 12px;
+}
+
+.ka-event-desc {
+  font-size: 0.95rem;
+  color: var(--text-body);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  flex: 1;
+}
+
+/* ==============================================================================
+   7. SECTION 10: TRỢ LÝ AI KIẾN AN (DARK THEME)
+   ============================================================================== */
+.ka-ai-assistant-box {
+  background: linear-gradient(135deg, #0A1B2C 0%, #102A43 100%);
+  border-radius: var(--radius-lg);
+  padding: 55px 45px;
+  color: #ffffff;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 45px;
+  align-items: center;
+  border: 1.5px solid rgba(0, 127, 130, 0.35);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+}
+
+.ka-ai-bot-left h2 {
+  font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 16px;
+  line-height: 1.25;
+}
+
+.ka-ai-bot-left p {
+  font-size: 1.05rem;
+  color: #CBD5E1;
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+
+.ka-ai-prompts-title {
+  font-size: 0.9rem;
+  font-weight: 750;
+  color: var(--warm-gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.ka-ai-prompts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ka-ai-prompt-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
+  padding: 12px 18px;
+  border-radius: 10px;
+  text-align: left;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.ka-ai-prompt-btn:hover {
+  background: rgba(0, 127, 130, 0.25);
+  border-color: var(--teal-primary);
+  color: #ffffff;
+  transform: translateX(4px);
+}
+
+.ka-ai-bot-right {
+  background: rgba(8, 21, 34, 0.85);
+  border-radius: var(--radius-md);
+  padding: 26px;
+  border: 1px solid rgba(0, 127, 130, 0.3);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 380px;
+}
+
+.ka-ai-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 16px;
+}
+
+.ka-ai-chat-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--teal-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.ka-ai-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 6px;
+}
+
+.ka-chat-bubble {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  max-width: 90%;
+}
+
+.ka-chat-bubble.bot {
+  background: rgba(255, 255, 255, 0.08);
+  color: #E2E8F0;
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
+
+.ka-chat-bubble.user {
+  background: var(--teal-primary);
+  color: #ffffff;
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+
+.ka-ai-chat-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ka-ai-chat-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #ffffff;
+  font-size: 0.92rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.ka-ai-chat-input:focus {
+  border-color: var(--teal-primary);
+}
+
+.ka-ai-chat-send {
+  background: var(--teal-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.ka-ai-chat-send:hover {
+  background: #00A896;
+}
+
+/* ==============================================================================
+   8. SECTION 11: FORM ĐỒNG HÀNH & KẾT NỐI (POST /api/leads)
+   ============================================================================== */
+.ka-consult-grid {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 45px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 55px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(16, 42, 67, 0.08);
+}
+
+.ka-consult-info h2 {
+  font-size: clamp(1.8rem, 3.2vw, 2.4rem);
+  font-weight: 800;
+  color: var(--navy-primary);
+  line-height: 1.25;
+  margin-bottom: 16px;
+}
+
+.ka-consult-info p {
+  font-size: 1.05rem;
+  color: var(--text-body);
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+
+.ka-contact-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 24px;
+  background: var(--bg-light);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(16, 42, 67, 0.06);
+}
+
+.ka-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ka-contact-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--teal-light);
+  color: var(--teal-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ka-contact-item a {
+  color: var(--navy-primary);
+  text-decoration: none;
+  font-weight: 750;
+  font-size: 1.05rem;
+}
+
+.ka-contact-item a:hover {
+  color: var(--teal-primary);
+}
+
+/* Form inputs */
+.ka-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ka-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ka-form-group label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--navy-primary);
+}
+
+.ka-form-input, .ka-form-select, .ka-form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid rgba(16, 42, 67, 0.15);
+  font-size: 0.98rem;
+  font-family: inherit;
+  color: var(--navy-primary);
+  background: #ffffff;
+  outline: none;
+  transition: var(--transition);
+  box-sizing: border-box;
+}
+
+.ka-form-input:focus, .ka-form-select:focus, .ka-form-textarea:focus {
+  border-color: var(--teal-primary);
+  box-shadow: 0 0 0 3px var(--teal-light);
+}
+
+.ka-form-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.ka-form-checkbox input {
+  margin-top: 3px;
+}
+
+/* ==============================================================================
+   RESPONSIVE QUERIES
+   ============================================================================== */
+@media (max-width: 1100px) {
+  .ka-hero-container {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .ka-hero-visual-card {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .ka-ai-solutions-grid {
+    grid-template-columns: 1fr;
+  }
+  .ka-biz-pillars-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ka-ai-assistant-box {
+    grid-template-columns: 1fr;
+    gap: 35px;
+  }
+  .ka-consult-grid {
+    grid-template-columns: 1fr;
+    padding: 35px 25px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ka-section {
+    padding: 60px 16px;
+  }
+  .ka-hero {
+    padding: 60px 16px 70px;
+  }
+  .ka-places-grid {
+    grid-template-columns: 1fr;
+  }
+  .ka-biz-pillars-grid {
+    grid-template-columns: 1fr;
+  }
+  .ka-ai-banner {
+    padding: 35px 24px;
+  }
+  .ka-ai-assistant-box {
+    padding: 35px 22px;
+  }
+  .ka-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ka-btn-primary, .ka-btn-outline {
+    justify-content: center;
+  }
+}

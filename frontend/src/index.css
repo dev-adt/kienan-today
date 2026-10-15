@@ -41,64 +41,68 @@ html, body {
   --font-title: 'Be Vietnam Pro', 'Outfit', system-ui, -apple-system, sans-serif;
   --font-body: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
-  /* DakLak Bazan, Coffee & Gong Gold Tokens */
-  --primary-coffee: #3B2417;
-  --bazan-brown: #7A3E1D;
-  --bazan-red: #A84524;
-  --forest-green: #1F5A3A;
-  --gong-gold: #D5A33F;
-  --light-cream: #F7F1E8;
-  --text-dark: #2C221E;
+  /* Kien An Navy, Teal, ADT Red & Warm Gold Tokens */
+  --navy-dark: #0A1B2C;
+  --navy-primary: #102A43;
+  --navy-light: #243B53;
+  --teal-primary: #007F82;
+  --teal-hover: #006668;
+  --teal-light: #E6F7F7;
+  --brand-red: #D62839;
+  --warm-gold: #F4B544;
+  --warm-gold-light: #FCD34D;
+  --bg-light: #F4F7FA;
+  --text-dark: #102A43;
 
-  /* Color Tokens */
-  --primary: #7A3E1D;
-  --primary-glow: rgba(122, 62, 29, 0.35);
-  --primary-dark: #3B2417;
-  --primary-light: #A84524;
+  /* Unified Color Tokens */
+  --primary: #102A43;
+  --primary-glow: rgba(0, 127, 130, 0.35);
+  --primary-dark: #081522;
+  --primary-light: #007F82;
   
-  --neon-cyan: #D5A33F;
-  --neon-glow: rgba(213, 163, 63, 0.4);
+  --neon-cyan: #007F82;
+  --neon-glow: rgba(0, 127, 130, 0.4);
 
-  --emerald: #1F5A3A;
-  --emerald-bg: rgba(31, 90, 58, 0.12);
-  --emerald-dark: #16432B;
+  --emerald: #007F82;
+  --emerald-bg: rgba(0, 127, 130, 0.12);
+  --emerald-dark: #025359;
 
-  --amber: #D5A33F;
-  --amber-bg: rgba(213, 163, 63, 0.15);
-  --amber-dark: #B3832B;
-  --gold: #D5A33F;
-  --gold-light: #F3C562;
-  --gold-glow: rgba(213, 163, 63, 0.35);
+  --amber: #F4B544;
+  --amber-bg: rgba(244, 181, 68, 0.15);
+  --amber-dark: #D97706;
+  --gold: #F4B544;
+  --gold-light: #FCD34D;
+  --gold-glow: rgba(244, 181, 68, 0.35);
 
-  --rose: #A84524;
-  --rose-bg: rgba(168, 69, 36, 0.12);
-  --rose-dark: #8A341A;
+  --rose: #D62839;
+  --rose-bg: rgba(214, 40, 57, 0.12);
+  --rose-dark: #9E1020;
 
-  /* Default Theme: Warm Cream & Crisp Canvas */
-  --bg-base: #F7F1E8;
+  /* Default Theme: Crisp, Modern Canvas */
+  --bg-base: #F4F7FA;
   --surface-2: #FFFFFF;
-  --surface-0: #EFE6D8;
-  --surface-1: #E4D7C3;
+  --surface-0: #EBF1F7;
+  --surface-1: #DEE7F0;
   
-  --text-primary: #2C221E;
-  --text-secondary: #5D4336;
-  --text-muted: #7A6960;
+  --text-primary: #102A43;
+  --text-secondary: #334E68;
+  --text-muted: #627D98;
   
-  --border: rgba(122, 62, 29, 0.12);
-  --border-strong: rgba(122, 62, 29, 0.22);
+  --border: rgba(16, 42, 67, 0.12);
+  --border-strong: rgba(16, 42, 67, 0.22);
 
   /* Glassmorphism Parameters */
-  --glass-bg: rgba(255, 255, 255, 0.88);
-  --glass-border: rgba(122, 62, 29, 0.14);
-  --glass-glow: rgba(213, 163, 63, 0.18);
+  --glass-bg: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(0, 127, 130, 0.18);
+  --glass-glow: rgba(0, 127, 130, 0.16);
 
   /* Shared parameters */
   --radius: 12px;
   --radius-lg: 20px;
   --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  --shadow: 0 10px 30px -10px rgba(59, 36, 23, 0.08);
-  --shadow-lg: 0 20px 40px -15px rgba(59, 36, 23, 0.16);
-  --shadow-light: 0 8px 24px -8px rgba(59, 36, 23, 0.05);
+  --shadow: 0 10px 30px -10px rgba(16, 42, 67, 0.08);
+  --shadow-lg: 0 20px 40px -15px rgba(16, 42, 67, 0.16);
+  --shadow-light: 0 8px 24px -8px rgba(16, 42, 67, 0.05);
 }
 
 /* Card Hover Micro-animations */

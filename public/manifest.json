@@ -1,15 +1,14 @@
 {
-  "name": "DakLak.today — Cổng thông tin, dữ liệu và kết nối đầu tư Đắk Lắk",
-  "short_name": "DakLak.today",
-  "description": "Nền tảng số kết nối con người, doanh nghiệp, sản phẩm, du lịch, dữ liệu và cơ hội đầu tư của tỉnh Đắk Lắk bằng nền tảng số và trí tuệ nhân tạo.",
+  "name": "kienan.today | Khám phá Kiến An, kết nối cộng đồng và doanh nghiệp",
+  "short_name": "kienan.today",
+  "description": "Khám phá Kiến An, Hải Phòng; kết nối doanh nghiệp, cộng đồng, sự kiện và giải pháp AI cùng kienan.today.",
   "id": "/",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#26160E",
-  "theme_color": "#3B2417",
-  "categories": ["business", "news", "travel", "investment"],
+  "background_color": "#102A43",
+  "theme_color": "#102A43",
+  "categories": ["business", "news", "community", "ai", "lifestyle"],
   "icons": [
     {
       "src": "/favicon.png",
@@ -50,23 +49,23 @@
   ],
   "shortcuts": [
     {
-      "name": "Cà phê & Nông sản Đắk Lắk",
-      "short_name": "Cà phê",
-      "description": "Khám phá chuỗi giá trị và thương hiệu cà phê",
-      "url": "/posts?category=Cà%20phê%20Đắk%20Lắk",
+      "name": "Khám phá Kiến An",
+      "short_name": "Khám phá",
+      "description": "Điểm đến, cảnh quan Đồi Thiên Văn, Hồ Hạnh Phúc",
+      "url": "/posts?category=Khám%20phá%20Kiến%20An",
       "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Trợ lý AI Đắk Lắk",
+      "name": "Trợ lý AI Kiến An",
       "short_name": "AI Assistant",
-      "description": "Hỏi đáp đầu tư và dữ liệu cùng Trợ lý AI",
+      "description": "Hỏi đáp thông tin và kết nối cùng Trợ lý AI",
       "url": "/ai-chat",
       "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Cơ hội Đầu tư & Doanh nghiệp",
-      "short_name": "Đầu tư",
-      "description": "Tra cứu dự án và danh bạ doanh nghiệp",
+      "name": "Doanh nghiệp & Dịch vụ",
+      "short_name": "Doanh nghiệp",
+      "description": "Tra cứu hồ sơ doanh nghiệp và hộ kinh doanh",
       "url": "/members",
       "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
     }

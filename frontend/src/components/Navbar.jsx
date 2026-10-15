@@ -188,10 +188,10 @@ export const Navbar = () => {
           left: 0 !important;
           right: 0 !important;
           z-index: 99999 !important;
-          background: #26160E !important;
-          background-image: linear-gradient(180deg, #22120A 0%, #160B06 100%) !important;
-          border-bottom: 2px solid rgba(213, 163, 63, 0.35) !important;
-          box-shadow: 0 4px 20px rgba(20, 10, 5, 0.65) !important;
+          background: #102A43 !important;
+          background-image: linear-gradient(180deg, #102A43 0%, #0A1B2C 100%) !important;
+          border-bottom: 2px solid rgba(0, 127, 130, 0.4) !important;
+          box-shadow: 0 4px 20px rgba(10, 27, 44, 0.5) !important;
           width: 100% !important;
           max-width: 100vw !important;
           box-sizing: border-box !important;
@@ -224,14 +224,14 @@ export const Navbar = () => {
           width: 42px !important;
           height: 42px !important;
           border-radius: 10px !important;
-          background: linear-gradient(135deg, #7A3E1D 0%, #D5A33F 100%) !important;
+          background: linear-gradient(135deg, #102A43 0%, #007F82 100%) !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
           color: #ffffff !important;
           font-weight: 900 !important;
           font-size: 16px !important;
-          border: 1.5px solid rgba(213, 163, 63, 0.45) !important;
+          border: 1.5px solid rgba(0, 127, 130, 0.5) !important;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
           overflow: hidden !important;
           flex-shrink: 0 !important;
@@ -260,7 +260,7 @@ export const Navbar = () => {
         .dnvn-brand-subtitle {
           font-size: 8px !important;
           font-weight: 700 !important;
-          color: #D5A33F !important;
+          color: #F4B544 !important;
           letter-spacing: 0.5px !important;
           text-transform: uppercase !important;
           margin-top: 2px !important;
@@ -511,23 +511,23 @@ export const Navbar = () => {
             <div className="dnvn-brand-icon notranslate" translate="no">
               <img 
                 src="/logo_icon.svg" 
-                alt="DakLak.today Logo" 
+                alt="kienan.today Logo" 
                 className="dnvn-brand-icon-img"
                 onError={(e) => { 
                   e.target.src = '/logo_icon.png';
                   e.target.onerror = () => {
                     e.target.style.display = 'none';
-                    e.target.parentNode.innerText = 'DL';
+                    e.target.parentNode.innerText = 'KA';
                   };
                 }}
               />
             </div>
             <div className="dnvn-brand-text-box notranslate" translate="no">
               <span className="dnvn-brand-title notranslate" translate="no">
-                Daklak<span style={{ color: '#D5A33F' }}>.today</span>
+                kienan<span style={{ color: '#007F82' }}>.today</span>
               </span>
               <span className="dnvn-brand-subtitle">
-                {currentLang === 'en' ? 'DAK LAK INFORMATION, DATA & INVESTMENT' : 'CỔNG THÔNG TIN, DỮ LIỆU & ĐẦU TƯ ĐẮK LẮK'}
+                {currentLang === 'en' ? 'KIEN AN INFORMATION, DATA & COMMUNITY' : 'CỔNG THÔNG TIN, DỮ LIỆU & CỘNG ĐỒNG KIẾN AN'}
               </span>
             </div>
           </Link>
