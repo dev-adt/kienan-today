@@ -474,12 +474,43 @@ db.query(`
       ) ENGINE=InnoDB COMMENT='Lịch sử chat AI'
     `);
 
-    // Thêm cột member_id vào chat_logs để phân tách lịch sử chat theo tài khoản
-    const [chatCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'member_id'");
-    if (!chatCols.length) {
+    // Thêm các cột thiếu vào chat_logs để đồng bộ phiên bản đầy đủ
+    const [memberCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'member_id'");
+    if (!memberCols.length) {
       await db.query("ALTER TABLE chat_logs ADD COLUMN member_id INT DEFAULT NULL AFTER session_id");
       await db.query("ALTER TABLE chat_logs ADD INDEX idx_member (member_id)");
       console.log('✅ Đã thêm cột member_id vào bảng chat_logs');
+    }
+
+    const [roleCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'role'");
+    if (!roleCols.length) {
+      await db.query("ALTER TABLE chat_logs ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user' AFTER member_id");
+      console.log('✅ Đã thêm cột role vào bảng chat_logs');
+    }
+
+    const [contentCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'content'");
+    if (!contentCols.length) {
+      await db.query("ALTER TABLE chat_logs ADD COLUMN content LONGTEXT NOT NULL AFTER role");
+      console.log('✅ Đã thêm cột content vào bảng chat_logs');
+    }
+
+    const [provCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'provider'");
+    if (!provCols.length) {
+      await db.query("ALTER TABLE chat_logs ADD COLUMN provider VARCHAR(50) DEFAULT NULL AFTER content");
+      console.log('✅ Đã thêm cột provider vào bảng chat_logs');
+    }
+
+    const [modelCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'model'");
+    if (!modelCols.length) {
+      await db.query("ALTER TABLE chat_logs ADD COLUMN model VARCHAR(100) DEFAULT NULL AFTER provider");
+      console.log('✅ Đã thêm cột model vào bảng chat_logs');
+    }
+
+    const [tokensCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'tokens_in'");
+    if (!tokensCols.length) {
+      await db.query("ALTER TABLE chat_logs ADD COLUMN tokens_in INT DEFAULT 0 AFTER model");
+      await db.query("ALTER TABLE chat_logs ADD COLUMN tokens_out INT DEFAULT 0 AFTER tokens_in");
+      console.log('✅ Đã thêm cột tokens_in và tokens_out vào bảng chat_logs');
     }
 
     const [deadlineCols] = await db.query("SHOW COLUMNS FROM posts LIKE 'deadline'");
@@ -3682,18 +3713,22 @@ app.post('/api/chat', anyAuthMiddleware, async (req, res) => {
     return res.status(403).json({ error: 'Hồ sơ hội viên chưa được phê duyệt. Vui lòng chờ admin duyệt trước khi sử dụng Trợ lý AI.' });
   }
 
-  // Kiểm tra giới hạn chat theo tier
-  const tierLimit = TIER_LIMITS[req.authUser.tier] || TIER_LIMITS.Silver;
-  if (tierLimit.chats_per_day !== Infinity) {
-    const [[countRow]] = await db.query(
-      `SELECT COUNT(*) AS cnt FROM chat_logs WHERE member_id = ? AND role = 'user' AND DATE(created_at) = CURDATE()`,
-      [req.authUser.id]
-    );
-    if (countRow.cnt >= tierLimit.chats_per_day) {
-      return res.status(429).json({
-        error: `Gói ${req.authUser.tier} chỉ được hỏi tối đa ${tierLimit.chats_per_day} câu/ngày. Nâng cấp gói để sử dụng thêm.`
-      });
+  // Kiểm tra giới hạn chat theo tier (bọc an toàn chống lỗi crash DB)
+  try {
+    const tierLimit = TIER_LIMITS[req.authUser.tier] || TIER_LIMITS.Silver;
+    if (tierLimit.chats_per_day !== Infinity) {
+      const [[countRow]] = await db.query(
+        `SELECT COUNT(*) AS cnt FROM chat_logs WHERE member_id = ? AND role = 'user' AND DATE(created_at) = CURDATE()`,
+        [req.authUser.id]
+      );
+      if (countRow && countRow.cnt >= tierLimit.chats_per_day) {
+        return res.status(429).json({
+          error: `Gói ${req.authUser.tier} chỉ được hỏi tối đa ${tierLimit.chats_per_day} câu/ngày. Nâng cấp gói để sử dụng thêm.`
+        });
+      }
     }
+  } catch (tierErr) {
+    console.warn('Lưu ý kiểm tra giới hạn chat (bỏ qua nếu DB đang đồng bộ):', tierErr.message);
   }
 
   const { provider, model, messages, system, apiKey } = req.body;
