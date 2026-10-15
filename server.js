@@ -475,42 +475,46 @@ db.query(`
     `);
 
     // Thêm các cột thiếu vào chat_logs để đồng bộ phiên bản đầy đủ
-    const [memberCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'member_id'");
-    if (!memberCols.length) {
-      await db.query("ALTER TABLE chat_logs ADD COLUMN member_id INT DEFAULT NULL AFTER session_id");
-      await db.query("ALTER TABLE chat_logs ADD INDEX idx_member (member_id)");
-      console.log('✅ Đã thêm cột member_id vào bảng chat_logs');
-    }
+    try {
+      const [chatMemberCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'member_id'");
+      if (!chatMemberCols.length) {
+        await db.query("ALTER TABLE chat_logs ADD COLUMN member_id INT DEFAULT NULL AFTER session_id");
+        await db.query("ALTER TABLE chat_logs ADD INDEX idx_member (member_id)");
+        console.log('✅ Đã thêm cột member_id vào bảng chat_logs');
+      }
 
-    const [roleCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'role'");
-    if (!roleCols.length) {
-      await db.query("ALTER TABLE chat_logs ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user' AFTER member_id");
-      console.log('✅ Đã thêm cột role vào bảng chat_logs');
-    }
+      const [roleCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'role'");
+      if (!roleCols.length) {
+        await db.query("ALTER TABLE chat_logs ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user' AFTER member_id");
+        console.log('✅ Đã thêm cột role vào bảng chat_logs');
+      }
 
-    const [contentCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'content'");
-    if (!contentCols.length) {
-      await db.query("ALTER TABLE chat_logs ADD COLUMN content LONGTEXT NOT NULL AFTER role");
-      console.log('✅ Đã thêm cột content vào bảng chat_logs');
-    }
+      const [contentCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'content'");
+      if (!contentCols.length) {
+        await db.query("ALTER TABLE chat_logs ADD COLUMN content LONGTEXT DEFAULT NULL AFTER role");
+        console.log('✅ Đã thêm cột content vào bảng chat_logs');
+      }
 
-    const [provCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'provider'");
-    if (!provCols.length) {
-      await db.query("ALTER TABLE chat_logs ADD COLUMN provider VARCHAR(50) DEFAULT NULL AFTER content");
-      console.log('✅ Đã thêm cột provider vào bảng chat_logs');
-    }
+      const [provCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'provider'");
+      if (!provCols.length) {
+        await db.query("ALTER TABLE chat_logs ADD COLUMN provider VARCHAR(50) DEFAULT NULL AFTER content");
+        console.log('✅ Đã thêm cột provider vào bảng chat_logs');
+      }
 
-    const [modelCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'model'");
-    if (!modelCols.length) {
-      await db.query("ALTER TABLE chat_logs ADD COLUMN model VARCHAR(100) DEFAULT NULL AFTER provider");
-      console.log('✅ Đã thêm cột model vào bảng chat_logs');
-    }
+      const [modelCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'model'");
+      if (!modelCols.length) {
+        await db.query("ALTER TABLE chat_logs ADD COLUMN model VARCHAR(100) DEFAULT NULL AFTER provider");
+        console.log('✅ Đã thêm cột model vào bảng chat_logs');
+      }
 
-    const [tokensCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'tokens_in'");
-    if (!tokensCols.length) {
-      await db.query("ALTER TABLE chat_logs ADD COLUMN tokens_in INT DEFAULT 0 AFTER model");
-      await db.query("ALTER TABLE chat_logs ADD COLUMN tokens_out INT DEFAULT 0 AFTER tokens_in");
-      console.log('✅ Đã thêm cột tokens_in và tokens_out vào bảng chat_logs');
+      const [tokensCols] = await db.query("SHOW COLUMNS FROM chat_logs LIKE 'tokens_in'");
+      if (!tokensCols.length) {
+        await db.query("ALTER TABLE chat_logs ADD COLUMN tokens_in INT DEFAULT 0 AFTER model");
+        await db.query("ALTER TABLE chat_logs ADD COLUMN tokens_out INT DEFAULT 0 AFTER tokens_in");
+        console.log('✅ Đã thêm cột tokens_in và tokens_out vào bảng chat_logs');
+      }
+    } catch (migErr) {
+      console.warn('Lưu ý khi cập nhật bảng chat_logs:', migErr.message);
     }
 
     const [deadlineCols] = await db.query("SHOW COLUMNS FROM posts LIKE 'deadline'");
