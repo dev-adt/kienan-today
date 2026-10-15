@@ -1858,3 +1858,451 @@
     justify-content: center;
   }
 }
+
+/* ==============================================================================
+   DOANH NGHIỆP TIÊU BIỂU (LIVICO - CÔNG TY CỔ PHẦN PHÁT TRIỂN XÂY DỰNG LIÊN VIỆT)
+   ============================================================================== */
+.ka-enterprise-card {
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid rgba(0, 127, 130, 0.2);
+  box-shadow: 0 16px 45px rgba(16, 42, 67, 0.08), 0 2px 12px rgba(0, 127, 130, 0.04);
+  overflow: hidden;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.ka-enterprise-card:hover {
+  box-shadow: 0 22px 55px rgba(16, 42, 67, 0.12), 0 4px 18px rgba(0, 127, 130, 0.1);
+  border-color: rgba(0, 127, 130, 0.35);
+}
+
+.ka-enterprise-top-ribbon {
+  background: linear-gradient(90deg, #102A43 0%, #0A364A 40%, #007F82 100%);
+  color: #ffffff;
+  padding: 12px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ka-enterprise-ribbon-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 750;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.ka-enterprise-ribbon-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #5EEAD4;
+  font-weight: 600;
+}
+
+.ka-enterprise-inner {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 40px;
+  padding: 36px 32px 32px;
+}
+
+/* Left Column */
+.ka-enterprise-header {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.ka-enterprise-logo-wrap {
+  width: 92px;
+  height: 92px;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 6px;
+  border: 2px solid #E2E8F0;
+  box-shadow: 0 6px 18px rgba(16, 42, 67, 0.08);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ka-enterprise-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ka-enterprise-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ka-enterprise-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.ka-enterprise-tag.gold {
+  background: #FEF3C7;
+  color: #B45309;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.ka-enterprise-tag.teal {
+  background: #CCFBF1;
+  color: #0F766E;
+  border: 1px solid rgba(13, 148, 136, 0.3);
+}
+
+.ka-enterprise-title {
+  font-size: 1.32rem;
+  font-weight: 850;
+  color: #102A43;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.ka-enterprise-slogan {
+  background: linear-gradient(135deg, rgba(0, 127, 130, 0.06) 0%, rgba(244, 181, 68, 0.06) 100%);
+  border-left: 4px solid #007F82;
+  padding: 12px 18px;
+  border-radius: 0 12px 12px 0;
+  margin-bottom: 22px;
+  font-style: italic;
+  color: #334155;
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+/* Stats Counter Grid */
+.ka-enterprise-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.ka-enterprise-stat-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 14px 10px;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+
+.ka-enterprise-stat-box:hover {
+  background: #ffffff;
+  border-color: #007F82;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 127, 130, 0.1);
+}
+
+.ka-enterprise-stat-val {
+  font-size: 1.35rem;
+  font-weight: 850;
+  color: #007F82;
+  line-height: 1.15;
+  font-family: inherit;
+}
+
+.ka-enterprise-stat-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  margin-top: 4px;
+  letter-spacing: 0.3px;
+}
+
+/* Capabilities Pills */
+.ka-enterprise-caps {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.ka-enterprise-cap-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.86rem;
+  font-weight: 650;
+  color: #1E293B;
+  background: #F1F5F9;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.ka-enterprise-cap-item i {
+  color: #00A896;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+/* Contact Details Info */
+.ka-enterprise-contact-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  background: #F8FAFC;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  font-size: 0.88rem;
+  color: #475569;
+}
+
+.ka-enterprise-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ka-enterprise-info-item i {
+  color: #007F82;
+  font-size: 1rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.ka-enterprise-info-item.highlight i {
+  color: #EF4444;
+}
+
+.ka-enterprise-info-item strong {
+  color: #102A43;
+}
+
+/* Action CTAs */
+.ka-enterprise-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.ka-btn-enterprise-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #00A896 0%, #007F82 100%);
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 750;
+  font-size: 0.94rem;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0, 127, 130, 0.28);
+  transition: all 0.25s ease;
+}
+
+.ka-btn-enterprise-primary:hover {
+  background: linear-gradient(135deg, #02C39A 0%, #00A896 100%);
+  box-shadow: 0 6px 20px rgba(0, 127, 130, 0.4);
+  transform: translateY(-2px);
+  color: #ffffff;
+}
+
+.ka-btn-enterprise-hotline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #102A43;
+  border: 2px solid #E2E8F0;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-weight: 750;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.ka-btn-enterprise-hotline:hover {
+  border-color: #F4B544;
+  color: #D97706;
+  background: #FFFBEB;
+  transform: translateY(-2px);
+}
+
+/* Right Column: Visual & Project Showcase */
+.ka-enterprise-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ka-enterprise-visual-wrap {
+  position: relative;
+  height: 220px;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(16, 42, 67, 0.1);
+}
+
+.ka-enterprise-visual-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.ka-enterprise-card:hover .ka-enterprise-visual-img {
+  transform: scale(1.04);
+}
+
+.ka-enterprise-visual-tag {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  right: 14px;
+  background: rgba(16, 42, 67, 0.88);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(94, 234, 212, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ka-enterprise-visual-tag span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #5EEAD4;
+}
+
+.ka-enterprise-projects-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 20px;
+  flex: 1;
+}
+
+.ka-enterprise-projects-title {
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: #102A43;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ka-enterprise-projects-title i {
+  color: #007F82;
+  font-size: 1.15rem;
+}
+
+.ka-enterprise-projects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ka-enterprise-project-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  transition: all 0.2s ease;
+}
+
+.ka-enterprise-project-item:hover {
+  border-color: rgba(0, 127, 130, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transform: translateX(3px);
+}
+
+.ka-enterprise-project-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #E6FFFA;
+  color: #007F82;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ka-enterprise-project-name {
+  font-size: 0.88rem;
+  font-weight: 750;
+  color: #102A43;
+  line-height: 1.35;
+}
+
+.ka-enterprise-project-scope {
+  font-size: 0.78rem;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+/* Responsive adjustments for Enterprise block */
+@media (max-width: 992px) {
+  .ka-enterprise-inner {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 28px 20px;
+  }
+  .ka-enterprise-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ka-enterprise-caps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 576px) {
+  .ka-enterprise-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  .ka-enterprise-badges {
+    justify-content: center;
+  }
+  .ka-enterprise-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .ka-enterprise-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .ka-btn-enterprise-primary, .ka-btn-enterprise-hotline {
+    width: 100%;
+    justify-content: center;
+  }
+}
+

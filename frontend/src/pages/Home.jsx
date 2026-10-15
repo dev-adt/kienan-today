@@ -439,9 +439,221 @@ export const Home = () => {
         </section>
 
         {/* ==============================================================================
+            DOANH NGHIỆP TIÊU BIỂU (LIVICO - CÔNG TY CỔ PHẦN PHÁT TRIỂN XÂY DỰNG LIÊN VIỆT)
+            ============================================================================== */}
+        <section className="ka-section" style={{ background: '#F8FAFC', paddingTop: '50px', paddingBottom: '70px' }} id="doanh-nghiep-tieu-bieu">
+          <div className="ka-container">
+            <div className="ka-section-header center">
+              <span className="ka-section-badge">
+                <i className="ti ti-crown" style={{ color: '#F4B544' }}></i> DOANH NGHIỆP TIÊU BIỂU KIẾN AN
+              </span>
+              <h2 className="ka-section-title">
+                Tự hào Doanh nghiệp Kiến An <span>vươn tầm quốc gia</span>
+              </h2>
+              <p className="ka-section-desc">
+                “Tôn vinh các doanh nghiệp trụ cột tại Kiến An — Dẫn đầu đổi mới, khẳng định chất lượng và đồng hành cùng sự phát triển bền vững của địa phương.”
+              </p>
+            </div>
+
+            <div className="ka-enterprise-card">
+              {/* Top Ribbon */}
+              <div className="ka-enterprise-top-ribbon">
+                <div className="ka-enterprise-ribbon-left">
+                  <i className="ti ti-star-filled" style={{ color: '#F4B544' }}></i>
+                  <span>Hội viên Doanh nghiệp Tiêu biểu • kienan.today</span>
+                </div>
+                <div className="ka-enterprise-ribbon-right">
+                  <i className="ti ti-rosette-discount-check-filled"></i>
+                  <span>Hội viên Hiệp hội PCCC & CNCH Việt Nam</span>
+                </div>
+              </div>
+
+              {/* Main Content (2 Columns) */}
+              <div className="ka-enterprise-inner">
+                {/* Cột trái: Thông tin & Năng lực */}
+                <div className="ka-enterprise-left">
+                  <div className="ka-enterprise-header">
+                    <div className="ka-enterprise-logo-wrap">
+                      <img 
+                        src="https://lienvietvn.vn/sites/default/files/lg-livico.jpg" 
+                        alt="LIVICO - Công ty Cổ phần Phát triển Xây dựng Liên Việt" 
+                        className="ka-enterprise-logo-img"
+                      />
+                    </div>
+                    <div>
+                      <div className="ka-enterprise-badges">
+                        <span className="ka-enterprise-tag gold">
+                          <i className="ti ti-award"></i> TOP PCCC & CƠ ĐIỆN
+                        </span>
+                        <span className="ka-enterprise-tag teal">
+                          <i className="ti ti-map-pin"></i> TRỤ SỞ KIẾN AN
+                        </span>
+                      </div>
+                      <h3 className="ka-enterprise-title">
+                        CÔNG TY CỔ PHẦN PHÁT TRIỂN XÂY DỰNG LIÊN VIỆT (LIVICO)
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="ka-enterprise-slogan">
+                    “LIVICO mang đến giải pháp bảo vệ sự an toàn tuyệt đối cho con người và đem lại gia tài thịnh vượng cho khách hàng — Uy tín tạo dựng thành công, 100% không chậm tiến độ.”
+                  </div>
+
+                  {/* 4 Thống kê ấn tượng */}
+                  <div className="ka-enterprise-stats">
+                    <div className="ka-enterprise-stat-box">
+                      <div className="ka-enterprise-stat-val">15+</div>
+                      <div className="ka-enterprise-stat-label">Năm uy tín</div>
+                    </div>
+                    <div className="ka-enterprise-stat-box">
+                      <div className="ka-enterprise-stat-val">1,288+</div>
+                      <div className="ka-enterprise-stat-label">Ha đất CN & ĐT</div>
+                    </div>
+                    <div className="ka-enterprise-stat-box">
+                      <div className="ka-enterprise-stat-val">112+</div>
+                      <div className="ka-enterprise-stat-label">Dự án đầu tư</div>
+                    </div>
+                    <div className="ka-enterprise-stat-box">
+                      <div className="ka-enterprise-stat-val">100%</div>
+                      <div className="ka-enterprise-stat-label">Đúng tiến độ</div>
+                    </div>
+                  </div>
+
+                  {/* 4 Năng lực cốt lõi */}
+                  <div className="ka-enterprise-caps">
+                    <div className="ka-enterprise-cap-item">
+                      <i className="ti ti-shield-check"></i>
+                      <span>Tư vấn, thiết kế & thẩm duyệt PCCC</span>
+                    </div>
+                    <div className="ka-enterprise-cap-item">
+                      <i className="ti ti-flame"></i>
+                      <span>HT Báo cháy & Chữa cháy tự động</span>
+                    </div>
+                    <div className="ka-enterprise-cap-item">
+                      <i className="ti ti-wind"></i>
+                      <span>HT Hút khói sự cố & Thông gió nhà xưởng</span>
+                    </div>
+                    <div className="ka-enterprise-cap-item">
+                      <i className="ti ti-bolt"></i>
+                      <span>Cơ điện (M&E) & Tiếp địa chống sét</span>
+                    </div>
+                  </div>
+
+                  {/* Địa chỉ & Hotline */}
+                  <div className="ka-enterprise-contact-row">
+                    <div className="ka-enterprise-info-item highlight">
+                      <i className="ti ti-map-pin"></i>
+                      <div>
+                        <strong>Trụ sở chính:</strong> Số 17-BT06, đường Bắc Sơn, Phường Kiến An, TP. Hải Phòng
+                      </div>
+                    </div>
+                    <div className="ka-enterprise-info-item">
+                      <i className="ti ti-building"></i>
+                      <div>
+                        <strong>VPKD:</strong> SH29 KĐT Seoul Eco Homes Tràng Duệ, P. An Dương, TP. Hải Phòng
+                      </div>
+                    </div>
+                    <div className="ka-enterprise-info-item">
+                      <i className="ti ti-phone"></i>
+                      <div>
+                        <strong>Hotline:</strong> 0914.799.114 &nbsp;•&nbsp; <strong>Email:</strong> pccclienvietvn2011@gmail.com
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action CTAs */}
+                  <div className="ka-enterprise-actions">
+                    <a 
+                      href="https://lienvietvn.vn/" 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="ka-btn-enterprise-primary"
+                    >
+                      <span>Khám phá lienvietvn.vn</span>
+                      <i className="ti ti-arrow-up-right"></i>
+                    </a>
+                    <a 
+                      href="tel:0914799114" 
+                      className="ka-btn-enterprise-hotline"
+                    >
+                      <i className="ti ti-phone-call" style={{ color: '#F4B544' }}></i>
+                      <span>Hotline: 0914.799.114</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Cột phải: Hình ảnh thực tế & Dự án trọng điểm */}
+                <div className="ka-enterprise-right">
+                  <div className="ka-enterprise-visual-wrap">
+                    <img 
+                      src="https://lienvietvn.vn/sites/default/files/dat06130_0.jpg" 
+                      alt="Dự án thực tế LIVICO" 
+                      className="ka-enterprise-visual-img"
+                    />
+                    <div className="ka-enterprise-visual-tag">
+                      <span>Đội ngũ kỹ sư PCCC chuyên sâu</span>
+                      <i className="ti ti-badge-check" style={{ color: '#5EEAD4' }}></i>
+                    </div>
+                  </div>
+
+                  <div className="ka-enterprise-projects-box">
+                    <div className="ka-enterprise-projects-title">
+                      <i className="ti ti-building-factory-2"></i>
+                      <span>Dự án trọng điểm tiêu biểu đã triển khai</span>
+                    </div>
+
+                    <div className="ka-enterprise-projects-list">
+                      <div className="ka-enterprise-project-item">
+                        <div className="ka-enterprise-project-icon">
+                          <i className="ti ti-car"></i>
+                        </div>
+                        <div>
+                          <div className="ka-enterprise-project-name">Tổ hợp Nhà máy VinFast Hải Phòng</div>
+                          <div className="ka-enterprise-project-scope">Thi công hệ thống phòng cháy chữa cháy quy mô công nghiệp</div>
+                        </div>
+                      </div>
+
+                      <div className="ka-enterprise-project-item">
+                        <div className="ka-enterprise-project-icon">
+                          <i className="ti ti-anchor"></i>
+                        </div>
+                        <div>
+                          <div className="ka-enterprise-project-name">Tổ hợp KCN Deep C Hải Phòng</div>
+                          <div className="ka-enterprise-project-scope">Nghiệm thu hệ thống cấp nước chữa cháy ngoài nhà</div>
+                        </div>
+                      </div>
+
+                      <div className="ka-enterprise-project-item">
+                        <div className="ka-enterprise-project-icon">
+                          <i className="ti ti-building-warehouse"></i>
+                        </div>
+                        <div>
+                          <div className="ka-enterprise-project-name">KCN Phú Thái & KCN An Phát 1</div>
+                          <div className="ka-enterprise-project-scope">Hệ thống PCCC cụm 7 nhà xưởng tiêu chuẩn quốc tế</div>
+                        </div>
+                      </div>
+
+                      <div className="ka-enterprise-project-item">
+                        <div className="ka-enterprise-project-icon">
+                          <i className="ti ti-topology-star-3"></i>
+                        </div>
+                        <div>
+                          <div className="ka-enterprise-project-name">KCN Liên Hà Thái & CCN Tiên Cường II</div>
+                          <div className="ka-enterprise-project-scope">Tư vấn thiết kế & tổng thầu thi công trọn gói</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ==============================================================================
             3. BANNER "LÀM CHỦ AI BỨT PHÁ TƯƠNG LAI" & 3 KHỐI GIẢI PHÁP ADT (Chương 6 Docx)
             ============================================================================== */}
-        <section className="ka-section" style={{ background: '#F4F7FA', paddingTop: '40px' }} id="giai-phap-ai">
+        <section className="ka-section" style={{ background: '#FFFFFF', paddingTop: '40px' }} id="giai-phap-ai">
           <div className="ka-container">
             {/* Banner nổi bật chạy ngang */}
             <div className="ka-ai-banner-wrap">
