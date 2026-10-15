@@ -2102,17 +2102,19 @@ app.get('/api/members', async (req, res) => {
       params.push(q, q, q);
     }
 
-    // Ưu tiên: 1. Hội viên ghim nổi bật (is_featured = 1) -> 2. Hạng gói cao (Platinum > Gold > Silver) -> 3. Mới nhất
+    // Ưu tiên: 1. Hội viên ghim nổi bật (is_featured = 1) -> 2. Hạng gói cao (Diamond/Platinum > Gold > Silver) -> 3. Mới nhất
     sql += `
       ORDER BY 
         is_featured DESC,
         CASE tier
+          WHEN 'Diamond' THEN 1
           WHEN 'Platinum' THEN 1
           WHEN 'Gold' THEN 2
           WHEN 'Silver' THEN 3
           ELSE 4
         END ASC,
-        created_at DESC
+        created_at DESC,
+        id DESC
     `;
 
     if (limit && Number(limit) > 0) {

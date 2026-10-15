@@ -133,7 +133,7 @@ export const Home = () => {
   // Dynamic Live Data từ Backend
   const [latestPosts, setLatestPosts] = useState(FALLBACK_POSTS);
   const [eventsList, setEventsList] = useState(FALLBACK_EVENTS);
-  const [featuredMembers, setFeaturedMembers] = useState(FALLBACK_MEMBERS);
+  const [featuredMembers, setFeaturedMembers] = useState(() => FALLBACK_MEMBERS.slice(0, 4));
   const [selectedPostFilter, setSelectedPostFilter] = useState('all');
 
   // Interactive AI Assistant Box State (Section 10)
@@ -158,7 +158,7 @@ export const Home = () => {
         const [postsRes, eventsRes, membersRes] = await Promise.allSettled([
           fetchJsonWithTimeout('/api/posts?limit=6'),
           fetchJsonWithTimeout('/api/events?status=active&limit=10'),
-          fetchJsonWithTimeout('/api/members?limit=4')
+          fetchJsonWithTimeout('/api/members?limit=12')
         ]);
 
         if (isMounted) {
@@ -188,8 +188,26 @@ export const Home = () => {
           } else {
             setEventsList(FALLBACK_EVENTS);
           }
-          if (membersRes.status === 'fulfilled' && membersRes.value?.data) {
-            setFeaturedMembers(membersRes.value.data);
+          if (membersRes.status === 'fulfilled' && Array.isArray(membersRes.value?.data)) {
+            const raw = membersRes.value.data;
+            const tierWeight = { Diamond: 1, Platinum: 1, Gold: 2, Silver: 3 };
+            const sorted = [...raw].sort((a, b) => {
+              const featA = Number(a.is_featured) === 1 || a.is_featured === true ? 1 : 0;
+              const featB = Number(b.is_featured) === 1 || b.is_featured === true ? 1 : 0;
+              if (featB !== featA) return featB - featA; // 1. Ưu tiên được gắn nổi bật
+              const wA = tierWeight[a.tier] || 4;
+              const wB = tierWeight[b.tier] || 4;
+              if (wA !== wB) return wA - wB; // 2. Sau đó đến thứ hạng (Diamond/Platinum > Gold > Silver)
+              return (b.id || 0) - (a.id || 0); // 3. Mới nhất
+            }).slice(0, 4); // Chỉ hiển thị tối đa 4 doanh nghiệp
+
+            if (sorted.length > 0) {
+              setFeaturedMembers(sorted);
+            } else {
+              setFeaturedMembers(FALLBACK_MEMBERS.slice(0, 4));
+            }
+          } else {
+            setFeaturedMembers(FALLBACK_MEMBERS.slice(0, 4));
           }
         }
       } catch (err) {
@@ -688,31 +706,59 @@ export const Home = () => {
               </div>
             </div>
 
-            {/* Danh bạ doanh nghiệp hội viên tiêu biểu */}
+            {/* Danh bạ doanh nghiệp hội viên tiêu biểu (Tối đa 4 doanh nghiệp, ưu tiên nổi bật & thứ hạng) */}
             <div className="ka-members-grid">
-              {featuredMembers.map((member) => (
-                <div key={member.id} className="ka-member-card">
-                  <div>
-                    <div className="ka-member-header">
-                      <img 
-                        src={member.logo_url || '/logo_icon.svg'} 
-                        alt={member.company_name} 
-                        className="ka-member-logo"
-                        onError={(e) => { e.target.src = '/logo_icon.svg'; }}
-                      />
-                      <div>
-                        <h4 className="ka-member-name">{member.company_name}</h4>
-                        <div className="ka-member-sector">{member.sector}</div>
+              {featuredMembers.slice(0, 4).map((member) => {
+                const companyName = member.name || member.company_name || 'Doanh nghiệp thành viên';
+                const isFeatured = Number(member.is_featured) === 1 || member.is_featured === true;
+                const tierName = member.tier || 'Silver';
+                const locationText = member.city || member.address || 'Kiến An, Hải Phòng';
+                const descText = member.description || member.desc || member.bio || `Lĩnh vực hoạt động: ${member.industry || member.sector || 'Sản xuất & Dịch vụ'}.`;
+
+                return (
+                  <div key={member.id} className={`ka-member-card ${isFeatured ? 'is-featured' : ''}`}>
+                    <div>
+                      <div className="ka-member-card-header">
+                        <img 
+                          src={member.logo_url || '/logo_icon.svg'} 
+                          alt={companyName} 
+                          className="ka-member-logo"
+                          onError={(e) => { e.target.src = '/logo_icon.svg'; }}
+                        />
+                        <div className="ka-member-info">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <h4 className="ka-member-name">{companyName}</h4>
+                            {isFeatured && (
+                              <span className="ka-member-featured-tag" title="Doanh nghiệp tiêu biểu nổi bật">
+                                <i className="fa-solid fa-star"></i> Nổi bật
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <span className={`ka-member-tier-pill tier-${tierName.toLowerCase()}`}>
+                              ⭐ {tierName} Partner
+                            </span>
+                          </div>
+                        </div>
                       </div>
+
+                      <p className="ka-member-desc">
+                        {descText}
+                      </p>
                     </div>
-                    <p className="ka-member-desc">{member.description}</p>
+
+                    <div className="ka-member-card-footer">
+                      <span className="ka-member-location">
+                        <i className="ti ti-map-pin"></i> {locationText}
+                      </span>
+                      <Link to="/members" className="ka-member-showroom-link">
+                        <span>Xem Showroom</span>
+                        <i className="ti ti-arrow-right"></i>
+                      </Link>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem', color: '#627D98', borderTop: '1px solid rgba(16,42,67,0.08)', paddingTop: '10px' }}>
-                    <span><i className="ti ti-map-pin"></i> {member.address}</span>
-                    <span style={{ color: '#007F82', fontWeight: 700 }}>✓ Đã xác minh</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* 2 Nút hành động chuẩn docx */}
