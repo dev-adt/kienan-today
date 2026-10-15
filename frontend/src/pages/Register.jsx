@@ -304,7 +304,7 @@ export const Register = () => {
                           <option value="Bình Thuận" />
                           <option value="Cà Mau" />
                           <option value="Cao Bằng" />
-                          <option value="Đắk Lắk" />
+                          <option value="Kiến An" />
                           <option value="Đắk Nông" />
                           <option value="Điện Biên" />
                           <option value="Đồng Tháp" />

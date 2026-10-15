@@ -47,8 +47,31 @@ export const AdminEvents = () => {
     capacity: 0,
     is_published: true,
     organizer: 'Tạp chí Doanh Nghiệp Việt Nam',
-    status: 'upcoming'
+    status: 'auto'
   });
+
+  // Tính toán trạng thái sự kiện chính xác dựa trên thời gian thực
+  const computeEventStatus = (eventDate, endDate, currentStatus) => {
+    if (currentStatus === 'cancelled') return 'cancelled';
+    if (!eventDate) return 'upcoming';
+    const now = Date.now();
+    let s = String(eventDate).trim();
+    if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(s)) s = s.replace(' ', 'T') + '+07:00';
+    const start = new Date(s).getTime();
+    if (isNaN(start)) return currentStatus || 'upcoming';
+
+    let end = start + (4 * 3600 * 1000);
+    if (endDate) {
+      let e = String(endDate).trim();
+      if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(e)) e = e.replace(' ', 'T') + '+07:00';
+      const parsedEnd = new Date(e).getTime();
+      if (!isNaN(parsedEnd)) end = parsedEnd;
+    }
+
+    if (now > end) return 'completed';
+    if (now >= start && now <= end) return 'ongoing';
+    return 'upcoming';
+  };
 
   const loadEvents = async () => {
     setLoading(true);
@@ -60,7 +83,12 @@ export const AdminEvents = () => {
       });
       if (!res.ok) throw new Error('Không thể tải danh sách sự kiện.');
       const data = await res.json();
-      setEvents(data.data || []);
+      const rawEvents = data.data || [];
+      const normalizedEvents = rawEvents.map(evt => ({
+        ...evt,
+        status: computeEventStatus(evt.event_date, evt.end_date, evt.status)
+      }));
+      setEvents(normalizedEvents);
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -109,7 +137,7 @@ export const AdminEvents = () => {
       capacity: 0,
       is_published: true,
       organizer: 'Tạp chí Doanh Nghiệp Việt Nam',
-      status: 'upcoming'
+      status: 'auto'
     });
     setEditingEventId(null);
     setModalOpen(true);
@@ -129,7 +157,7 @@ export const AdminEvents = () => {
       capacity: event.capacity || 0,
       is_published: event.is_published !== 0,
       organizer: event.organizer || 'Tạp chí Doanh Nghiệp Việt Nam',
-      status: event.status || 'upcoming'
+      status: event.status || 'auto'
     });
     setEditingEventId(event.id);
     setModalOpen(true);
@@ -142,8 +170,13 @@ export const AdminEvents = () => {
       return;
     }
 
+    const finalStatus = formData.status && formData.status !== 'auto'
+      ? formData.status
+      : computeEventStatus(formData.event_date, formData.end_date, formData.status);
+
     const payload = {
       ...formData,
+      status: finalStatus,
       is_paid: formData.is_paid ? 1 : 0,
       price: formData.is_paid ? parseFloat(formData.price) || 0 : 0,
       capacity: parseInt(formData.capacity, 10) || 0,
@@ -1058,6 +1091,35 @@ export const AdminEvents = () => {
                     outline: 'none'
                   }}
                 />
+              </div>
+
+              {/* Trạng thái sự kiện */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', marginBottom: '6px', display: 'block' }}>
+                  Trạng thái sự kiện
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #CBD5E1',
+                    fontSize: '13px',
+                    outline: 'none',
+                    backgroundColor: '#FFFFFF'
+                  }}
+                >
+                  <option value="auto">⚡ Tự động (Theo ngày bắt đầu & kết thúc)</option>
+                  <option value="upcoming">⏳ Sắp diễn ra</option>
+                  <option value="ongoing">🟢 Đang diễn ra</option>
+                  <option value="completed">🏁 Đã kết thúc</option>
+                  <option value="cancelled">❌ Đã hủy</option>
+                </select>
+                <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
+                  Nếu chọn "Tự động", hệ thống sẽ căn cứ vào thời gian diễn ra để tự động chuyển từ Sắp diễn ra ➔ Đang diễn ra ➔ Đã kết thúc.
+                </div>
               </div>
 
               {/* Công khai lên website Toggle */}

@@ -1759,8 +1759,8 @@ export const Events = () => {
           paddingBottom: '1.25rem'
         }}>
           <div>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#D5A33F', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              HỆ SINH THÁI DAKLAK.TODAY
+            <span style={{ fontSize: '12px', fontWeight: '700', color: '#007F82', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              HỆ SINH THÁI KIENAN.TODAY
             </span>
             <h1 style={{ fontSize: '26px', fontWeight: '900', color: '#0F172A', margin: '4px 0 0' }}>
               Sự kiện & Diễn đàn Giao thương

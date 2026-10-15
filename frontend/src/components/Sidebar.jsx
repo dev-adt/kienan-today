@@ -83,11 +83,11 @@ export const Sidebar = () => {
   return (
     <aside className="sidebar">
       <Link to="/admin-dashboard" className="sb-logo" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div className="sb-logo-icon" style={{ overflow: 'hidden', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2A160D', width: '32px', height: '32px', flexShrink: 0, border: '1px solid rgba(213, 163, 63, 0.4)' }}>
-          <img src="/logo_icon.svg" alt="DakLak.today" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = '/logo_icon.png'; }} />
+        <div className="sb-logo-icon" style={{ overflow: 'hidden', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0D1E30', width: '32px', height: '32px', flexShrink: 0, border: '1px solid rgba(0, 168, 150, 0.4)' }}>
+          <img src="/logo_icon.svg" alt="KienAn.today" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = '/logo_icon.png'; }} />
         </div>
         <div>
-          <div className="sb-logo-name">DakLak<span style={{ color: '#D5A33F' }}>.today</span></div>
+          <div className="sb-logo-name">KienAn<span style={{ color: '#00A896' }}>.today</span></div>
           <div className="sb-logo-sub">Quản trị Hệ thống</div>
         </div>
       </Link>

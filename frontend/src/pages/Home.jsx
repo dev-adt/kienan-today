@@ -30,48 +30,61 @@ const formatEventDateTime = (dateInput) => {
 };
 
 // Sub-component đếm ngược sự kiện hoạt động thực tế 24/7 (memoized chống giật DOM)
-const HomeEventCountdown = React.memo(({ eventDate, variant = 'hero' }) => {
-  const getTargetTime = (dateInput) => {
+const HomeEventCountdown = React.memo(({ eventDate, endDate, variant = 'hero' }) => {
+  const getTargetInfo = (startInput, endInput) => {
     const now = Date.now();
-    if (!dateInput) {
-      return now + (7 * 86400000 + 4 * 3600000 + 22 * 60000);
-    }
-    let s = String(dateInput).trim();
+    if (!startInput) return { target: 0, isOngoing: false, isEnded: true };
+    let s = String(startInput).trim();
     if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(s)) {
       s = s.replace(' ', 'T') + '+07:00';
     }
-    const parsed = new Date(s).getTime();
-    if (isNaN(parsed) || parsed <= now) {
-      // Nếu sự kiện trong quá khứ hoặc demo, tự động chiếu thời gian tới tương lai để đồng hồ luôn đếm ngược sống động
-      return now + (6 * 86400000 + 14 * 3600000 + 35 * 60000 + 42000);
+    const start = new Date(s).getTime();
+    if (isNaN(start)) return { target: 0, isOngoing: false, isEnded: true };
+
+    let end = start + (4 * 3600 * 1000);
+    if (endInput) {
+      let e = String(endInput).trim();
+      if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(e)) {
+        e = e.replace(' ', 'T') + '+07:00';
+      }
+      const parsedEnd = new Date(e).getTime();
+      if (!isNaN(parsedEnd)) end = parsedEnd;
     }
-    return parsed;
+
+    if (now > end) {
+      return { target: 0, isOngoing: false, isEnded: true };
+    }
+    if (now >= start) {
+      return { target: end, isOngoing: true, isEnded: false };
+    }
+    return { target: start, isOngoing: false, isEnded: false };
   };
 
-  const [timeLeft, setTimeLeft] = useState(() => {
-    const target = getTargetTime(eventDate);
-    const diff = Math.max(0, target - Date.now());
+  const calculateRemaining = () => {
+    const info = getTargetInfo(eventDate, endDate);
+    if (info.isEnded || info.target <= 0) {
+      return { days: 0, hours: 0, minutes: 0, seconds: 0, isOngoing: false, isEnded: true };
+    }
+    const diff = Math.max(0, info.target - Date.now());
     return {
       days: Math.floor(diff / (1000 * 60 * 60 * 24)),
       hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
       minutes: Math.floor((diff / (1000 * 60)) % 60),
-      seconds: Math.floor((diff / 1000) % 60)
+      seconds: Math.floor((diff / 1000) % 60),
+      isOngoing: info.isOngoing,
+      isEnded: false
     };
-  });
+  };
+
+  const [timeLeft, setTimeLeft] = useState(calculateRemaining);
 
   useEffect(() => {
-    const target = getTargetTime(eventDate);
+    setTimeLeft(calculateRemaining());
     const timer = setInterval(() => {
-      const diff = Math.max(0, target - Date.now());
-      setTimeLeft({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((diff / (1000 * 60)) % 60),
-        seconds: Math.floor((diff / 1000) % 60)
-      });
+      setTimeLeft(calculateRemaining());
     }, 1000);
     return () => clearInterval(timer);
-  }, [eventDate]);
+  }, [eventDate, endDate]);
 
   const isHero = variant === 'hero';
 
@@ -144,7 +157,7 @@ export const Home = () => {
       try {
         const [postsRes, eventsRes, membersRes] = await Promise.allSettled([
           fetchJsonWithTimeout('/api/posts?limit=6'),
-          fetchJsonWithTimeout('/api/events?limit=4'),
+          fetchJsonWithTimeout('/api/events?status=active&limit=10'),
           fetchJsonWithTimeout('/api/members?limit=4')
         ]);
 
@@ -152,8 +165,26 @@ export const Home = () => {
           if (postsRes.status === 'fulfilled' && postsRes.value?.data) {
             setLatestPosts(postsRes.value.data);
           }
-          if (eventsRes.status === 'fulfilled' && Array.isArray(eventsRes.value?.data) && eventsRes.value.data.length > 0) {
-            setEventsList(eventsRes.value.data);
+          if (eventsRes.status === 'fulfilled' && Array.isArray(eventsRes.value?.data)) {
+            const now = Date.now();
+            const activeEvents = eventsRes.value.data.filter(evt => {
+              if (evt.status === 'completed' || evt.status === 'cancelled') return false;
+              // Kiểm tra thêm mốc thời gian thực tế
+              const dateStr = evt.end_date || evt.event_date || evt.start_time;
+              if (dateStr) {
+                let s = String(dateStr).trim();
+                if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}(:\d{2})?$/.test(s)) s = s.replace(' ', 'T') + '+07:00';
+                const t = new Date(s).getTime();
+                if (!isNaN(t) && t < now) return false;
+              }
+              return true;
+            });
+
+            if (activeEvents.length > 0) {
+              setEventsList(activeEvents);
+            } else {
+              setEventsList(FALLBACK_EVENTS);
+            }
           } else {
             setEventsList(FALLBACK_EVENTS);
           }
@@ -645,7 +676,7 @@ export const Home = () => {
               </div>
 
               <div className="ka-biz-pillar-item">
-                <div className="ka-biz-pillar-icon"><i className="ti ti-handshake"></i></div>
+                <div className="ka-biz-pillar-icon"><i className="fa-solid fa-handshake"></i></div>
                 <h4>Nhu cầu hợp tác</h4>
                 <p>Tìm đối tác kinh doanh, nhà cung cấp và mở rộng thị trường.</p>
               </div>
@@ -754,6 +785,7 @@ export const Home = () => {
                       </div>
                       <HomeEventCountdown 
                         eventDate={dateVal} 
+                        endDate={feat.end_date}
                         variant="hero" 
                       />
                     </div>
@@ -763,13 +795,14 @@ export const Home = () => {
                         <i className="ti ti-map-pin"></i>
                         <span>{feat.location || 'Hội trường Trung tâm Văn hóa, Phường Kiến An, TP. Hải Phòng'}</span>
                       </div>
-                      <button 
-                        onClick={() => setRegisterModalEvent(feat)}
+                      <Link 
+                        to={`/events/${feat.slug || feat.id}`}
                         className="ka-btn-featured-register"
+                        style={{ textDecoration: 'none' }}
                       >
                         <span>Xem chi tiết & Đăng ký</span>
                         <i className="ti ti-arrow-right"></i>
-                      </button>
+                      </Link>
                     </div>
                   </div>
 
@@ -816,17 +849,19 @@ export const Home = () => {
                       <div className="ka-sub-event-countdown-row">
                         <HomeEventCountdown 
                           eventDate={dateVal} 
+                          endDate={event.end_date}
                           variant="compact" 
                         />
                       </div>
 
-                      <button 
-                        onClick={() => setRegisterModalEvent(event)}
+                      <Link 
+                        to={`/events/${event.slug || event.id}`}
                         className="ka-btn-sub-event-register"
+                        style={{ textDecoration: 'none' }}
                       >
                         <i className="ti ti-ticket"></i>
                         <span>Đăng ký tham gia / Nhận vé QR</span>
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 );

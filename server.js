@@ -1100,9 +1100,10 @@ async function runBackgroundMaintenance() {
     await db.query(`
       UPDATE events 
       SET status = CASE 
-        WHEN (end_date IS NOT NULL AND end_date < NOW()) OR (end_date IS NULL AND event_date < NOW()) THEN 'completed'
+        WHEN status = 'cancelled' THEN 'cancelled'
+        WHEN (end_date IS NOT NULL AND end_date < NOW()) OR (end_date IS NULL AND DATE_ADD(event_date, INTERVAL 4 HOUR) < NOW()) THEN 'completed'
         WHEN event_date <= NOW() AND (end_date IS NULL OR end_date >= NOW()) THEN 'ongoing'
-        ELSE status
+        ELSE 'upcoming'
       END
       WHERE status != 'cancelled'
     `);
@@ -3993,7 +3994,19 @@ app.get('/api/events', async (req, res) => {
       }
     }
 
-    // Trạng thái sự kiện được tự động cập nhật định kỳ trong hàm nền runBackgroundMaintenance()
+    // Cập nhật trạng thái sự kiện theo thời gian thực trước khi trả về dữ liệu
+    try {
+      await db.query(`
+        UPDATE events 
+        SET status = CASE 
+          WHEN status = 'cancelled' THEN 'cancelled'
+          WHEN (end_date IS NOT NULL AND end_date < NOW()) OR (end_date IS NULL AND DATE_ADD(event_date, INTERVAL 4 HOUR) < NOW()) THEN 'completed'
+          WHEN event_date <= NOW() AND (end_date IS NULL OR end_date >= NOW()) THEN 'ongoing'
+          ELSE 'upcoming'
+        END
+        WHERE status != 'cancelled'
+      `);
+    } catch (_) {}
 
     let sql = `
       SELECT e.*,
@@ -4018,7 +4031,10 @@ app.get('/api/events', async (req, res) => {
       sql += ' AND (e.is_published = 1 OR e.is_published IS NULL)';
     }
 
-    if (status && status !== 'all') {
+    if (status === 'active') {
+      // Chỉ lấy các sự kiện đang diễn ra hoặc sắp diễn ra (dành cho Trang chủ)
+      sql += " AND e.status IN ('upcoming', 'ongoing')";
+    } else if (status && status !== 'all') {
       sql += ' AND e.status = ?';
       params.push(status);
     }
@@ -4731,6 +4747,21 @@ app.post('/api/admin/events', eventManagerAuthMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Định dạng thời gian bắt đầu không hợp lệ.' });
     }
 
+    // Tự động xác định trạng thái thực tế dựa theo mốc thời gian
+    let finalStatus = status;
+    if (!finalStatus || finalStatus === 'auto' || finalStatus === 'upcoming') {
+      const now = new Date();
+      const start = new Date(finalEventDate);
+      const end = finalEndDate ? new Date(finalEndDate) : new Date(start.getTime() + 4 * 3600 * 1000);
+      if (now > end) {
+        finalStatus = 'completed';
+      } else if (now >= start && now <= end) {
+        finalStatus = 'ongoing';
+      } else {
+        finalStatus = 'upcoming';
+      }
+    }
+
     const [result] = await db.query(
       `INSERT INTO events 
        (title, slug, short_desc, description, content, event_date, end_date, location, organizer, capacity, is_paid, price, is_published, status, image_url)
@@ -4749,7 +4780,7 @@ app.post('/api/admin/events', eventManagerAuthMiddleware, async (req, res) => {
         finalIsPaid,
         finalPrice,
         finalIsPublished,
-        status || 'upcoming',
+        finalStatus,
         image_url || null
       ]
     );
@@ -4806,6 +4837,21 @@ app.put('/api/admin/events/:id', eventManagerAuthMiddleware, async (req, res) =>
       return res.status(400).json({ success: false, error: 'Định dạng thời gian bắt đầu không hợp lệ.' });
     }
 
+    // Tự động xác định trạng thái thực tế dựa theo mốc thời gian
+    let finalStatus = status;
+    if (!finalStatus || finalStatus === 'auto' || finalStatus === 'upcoming') {
+      const now = new Date();
+      const start = new Date(finalEventDate);
+      const end = finalEndDate ? new Date(finalEndDate) : new Date(start.getTime() + 4 * 3600 * 1000);
+      if (now > end) {
+        finalStatus = 'completed';
+      } else if (now >= start && now <= end) {
+        finalStatus = 'ongoing';
+      } else {
+        finalStatus = 'upcoming';
+      }
+    }
+
     await db.query(
       `UPDATE events 
        SET title = ?, slug = ?, short_desc = ?, description = ?, content = ?, event_date = ?, end_date = ?, 
@@ -4825,7 +4871,7 @@ app.put('/api/admin/events/:id', eventManagerAuthMiddleware, async (req, res) =>
         finalIsPaid,
         finalPrice,
         finalIsPublished,
-        status || 'upcoming',
+        finalStatus,
         image_url || null,
         eventId
       ]
